@@ -28,13 +28,14 @@ test('file grants use classic headers only for binary requests while JSON keeps 
   await transport.request(HttpMethod.Get, '/boards/scoped');
   const [download, metadata] = fetchImpl.mock.calls;
   expect(download?.[0]).toBe(
-    'https://api.trello.com/1/cards/scoped/attachments/scoped/download/original.txt',
+    'https://trello.com/1/cards/scoped/attachments/scoped/download/original.txt',
   );
   expect(download?.[1]).toMatchObject({
     credentials: 'omit',
     redirect: 'follow',
     headers: {
       Authorization: 'OAuth oauth_consumer_key="public-key", oauth_token="synthetic-file-token"',
+      Accept: '*/*',
     },
   });
   expect(metadata?.[1]).toMatchObject({

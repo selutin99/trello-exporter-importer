@@ -1,6 +1,7 @@
 /** Public service endpoints reviewed with the application code, never read from query parameters */
 export const serviceUrls = Object.freeze({
   trelloApi: 'https://api.trello.com/1',
+  trelloAttachments: 'https://trello.com/1',
   trelloBoardOrigin: 'https://trello.com',
   powerUpSdk: 'https://p.trellocdn.com/power-up.min.js',
   connectedApps: 'https://id.atlassian.com/manage-profile/apps',

@@ -408,8 +408,11 @@ ZIP downloads use the official SDK's Trello Auth client with an explicit one-day
 checks the current SDK board and discovered card/upload ownership before each
 file request. Board data and imports keep their OAuth 2.0 flow. The download
 transport sends the classic key/token pair only in the `Authorization` header to
-the fixed Trello API origin, omits cookies, and lets Fetch strip authorization on
+the fixed Trello attachment origin, omits cookies, and lets Fetch strip authorization on
 cross-origin file redirects. External attachment URLs are never fetched. The
+File requests accept the upload's original media type. File omissions retain only
+fixed API failure codes and HTTP status when available; response bodies, signed
+URLs, and credentials are excluded from diagnostics.
 SDK manages both kinds of tokens, including its file-callback browser storage;
 they never enter exports, journals, or application logs. The standalone return
 page initializes the SDK for its file callback without opening board API access.

@@ -80,6 +80,32 @@ test('a download body failure produces an importable ZIP with an explicit missin
   expect(imported.snapshot.attachments[0]?.file).toBeNull();
 });
 
+test('HTTP file omissions retain only fixed failure codes and status, without server details', async () => {
+  const { reader } = readerFixture(
+    {
+      [`/1/cards/${id(3)}/attachments/${id(4)}/download/note.txt`]: new Response(
+        'synthetic-private-response-and-signed-url',
+        { status: 404 },
+      ),
+    },
+    { attachmentAuth: { appKey: 'public-key', getToken: async () => 'synthetic-file-token' } },
+  );
+  const capture = await captureBoard(reader, id(1));
+  const imported = await readImport(await buildArchive(capture, reader));
+  expect(imported.snapshot.issues).toMatchObject([
+    {
+      code: IssueCode.FileUnavailable,
+    },
+  ]);
+  expect(imported.snapshot.issues[0]?.message).toContain('REQUEST_FAILED, HTTP 404');
+  expect(JSON.stringify(imported.snapshot)).not.toContain('synthetic-private-response');
+  expect(JSON.stringify(imported.snapshot)).not.toContain('synthetic-file-token');
+  expect(imported.snapshot.coverage.attachmentFiles).toEqual({
+    status: CoverageStatus.Partial,
+    count: 0,
+  });
+});
+
 test('foreign scope and cancellation terminate packaging instead of returning a download', async () => {
   await expect(
     buildArchive(createSyntheticCapture(), {

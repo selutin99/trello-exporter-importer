@@ -76,7 +76,8 @@ export class Transport {
   }
 
   async #response(method: HttpMethod, path: string, options: TransportOptions): Promise<Response> {
-    const url = new URL(`${serviceUrls.trelloApi}${path}`);
+    const origin = options.binary ? serviceUrls.trelloAttachments : serviceUrls.trelloApi;
+    const url = new URL(`${origin}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {}))
       url.searchParams.set(key, value);
     const attempts = method === HttpMethod.Get ? 3 : 1;
@@ -134,7 +135,7 @@ export class Transport {
         redirect: binary ? 'follow' : 'error',
         cache: 'no-store',
         headers: {
-          Accept: binary ? 'application/octet-stream' : 'application/json',
+          Accept: binary ? '*/*' : 'application/json',
           Authorization: authorization,
           ...(body && !form ? { 'Content-Type': 'application/json' } : {}),
         },

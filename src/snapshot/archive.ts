@@ -62,9 +62,14 @@ export async function buildArchive(
       } catch (error) {
         options.signal?.throwIfAborted();
         if (!(error instanceof ApiError)) throw error;
-        snapshot.issues.push(
-          issue(IssueCode.FileUnavailable, SnapshotSection.AttachmentFiles, attachment.id),
+        const unavailable = issue(
+          IssueCode.FileUnavailable,
+          SnapshotSection.AttachmentFiles,
+          attachment.id,
         );
+        const httpStatus = error.status === null ? '' : `, HTTP ${error.status}`;
+        unavailable.message += ` (${error.code}${httpStatus})`;
+        snapshot.issues.push(unavailable);
       }
     }
     snapshot.coverage[SnapshotSection.AttachmentFiles] = {

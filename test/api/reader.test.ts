@@ -123,7 +123,7 @@ test.each(['original file.txt', 'original café.txt'])(
     expect(
       await reader.file(id(3), { ...attachment, fileName: 'changed.txt', name: 'Changed' }, 4),
     ).toEqual(new TextEncoder().encode('data'));
-    expect(calls.at(-1)?.href).toBe(`https://api.trello.com${downloadPath}`);
+    expect(calls.at(-1)?.href).toBe(`https://trello.com${downloadPath}`);
     expect(
       calls
         .find((url) => url.pathname.endsWith('/attachments'))
