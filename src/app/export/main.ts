@@ -36,7 +36,7 @@ function render(): void {
     locale,
     session.model,
     !!frame,
-    session.busy || !!restore?.busy || files.state === AttachmentAccessState.Authorizing,
+    session.busy || !!restore?.busy || files.busy,
     files.state,
   );
   restore?.render();
@@ -65,7 +65,8 @@ view.element('export', HTMLButtonElement).addEventListener('click', () => {
   void session.prepare(reader, frame?.getContext().board ?? '', locale);
 });
 view.element('file-connect', HTMLButtonElement).addEventListener('click', () => {
-  void files.authorize();
+  if (files.state === AttachmentAccessState.Ready) void files.reset();
+  else void files.authorize();
 });
 view.element('cancel', HTMLButtonElement).addEventListener('click', () => session.cancel());
 view.element('save', HTMLButtonElement).addEventListener('click', () => {
@@ -114,7 +115,7 @@ restore = new RestoreUI({
   document,
   getFrame: () => frame,
   getLocale: () => locale,
-  exportBusy: () => session.busy,
+  exportBusy: () => session.busy || files.busy,
   changed: render,
 });
 render();

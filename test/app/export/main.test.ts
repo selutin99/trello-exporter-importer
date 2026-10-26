@@ -35,23 +35,30 @@ test('standalone links cannot activate sample content or initialize the SDK', as
   expect(fetcher).not.toHaveBeenCalled();
 });
 
-test('a file-consent popup initializes only the SDK callback without reading board data', async () => {
-  const { sdk } = installSdk();
-  const fetcher = vi.fn<typeof fetch>();
-  vi.stubGlobal('fetch', fetcher);
-  vi.stubGlobal('opener', {});
-  window.history.replaceState(null, '', `${window.location.href}#token=synthetic-callback-token`);
-  await start();
-  expect(sdk.iframe).toHaveBeenCalledExactlyOnceWith(
-    expect.objectContaining({
-      appKey: '00000000000000000000000000000000',
-      appName: 'trello-exporter-importer',
-    }),
-  );
-  expect(fetcher).not.toHaveBeenCalled();
-  expect(document.body.textContent).not.toContain('synthetic-callback-token');
-  expect(localStorage.getItem('trello_token')).toBeNull();
-});
+test.each([
+  '#token=synthetic-callback-token',
+  '#%7B%22context%22%3A%7B%7D%7D#token=synthetic-callback-token',
+  '#%7B%22context%22%3A%7B%7D%7D&token=synthetic-callback-token',
+])(
+  'a file-consent popup initializes only the SDK callback without reading board data: %s',
+  async (fragment) => {
+    const { sdk } = installSdk();
+    const fetcher = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetcher);
+    vi.stubGlobal('opener', {});
+    window.history.replaceState(null, '', `${window.location.href}${fragment}`);
+    await start();
+    expect(sdk.iframe).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        appKey: '00000000000000000000000000000000',
+        appName: 'trello-exporter-importer',
+      }),
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain('synthetic-callback-token');
+    expect(localStorage.getItem('trello_token')).toBeNull();
+  },
+);
 
 test.each(['missing-key', 'missing-sdk', 'sdk-error', 'ordinary-link'])(
   'file callback fails closed without exposing its fragment: %s',

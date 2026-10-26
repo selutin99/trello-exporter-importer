@@ -414,6 +414,9 @@ SDK manages both kinds of tokens, including its file-callback browser storage;
 they never enter exports, journals, or application logs. The standalone return
 page initializes the SDK for its file callback without opening board API access.
 ZIP export waits for file consent; other formats do not require that grant.
+If a stored file grant expires or is revoked, select **Reset file access**, then
+**Connect file access** in a fresh click. Reset clears the SDK connection without
+revoking the grant; account settings provide revocation.
 
 ### Delivery
 

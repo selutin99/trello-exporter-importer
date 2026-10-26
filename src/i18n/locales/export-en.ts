@@ -60,12 +60,13 @@ export const exportEn = {
   exportDetails: 'Technical details',
   exportSupport: 'Help & feedback',
   exportFilesConnect: 'Connect file access',
-  exportFilesReconnect: 'Reconnect file access',
+  exportFilesReconnect: 'Reset file access',
   exportFilesUnconfigured:
     'File access is not configured for this Power-Up. Choose another format or contact its maintainer',
   exportFilesRequired:
     'To include original uploads in ZIP, connect file access. Trello grants read access across your account for one day; this Power-Up downloads files only from the open board',
   exportFilesAuthorizing: 'Complete file authorization in the Trello window',
-  exportFilesConnected: 'File access is connected',
+  exportFilesConnected: 'File access is connected. If it expires, reset it and connect again',
+  exportFilesResetting: 'Resetting the file connection…',
   exportFilesAuthFailed: 'File access was not connected. Retry or choose another format',
 } as const;

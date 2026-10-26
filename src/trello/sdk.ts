@@ -8,6 +8,7 @@ export interface OAuthOptions {
 export interface AttachmentClient {
   getToken(): Promise<string | null | undefined>;
   authorize(options: { scope: string; expiration: string }): Promise<unknown>;
+  clearToken(): Promise<void>;
 }
 export interface OAuthClient {
   getAccessToken(): Promise<string | null | undefined>;

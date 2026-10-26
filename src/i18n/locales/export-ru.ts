@@ -63,13 +63,15 @@ export const exportRu = {
   exportDetails: 'Технические сведения',
   exportSupport: 'Помощь и обратная связь',
   exportFilesConnect: 'Подключить доступ к файлам',
-  exportFilesReconnect: 'Обновить доступ к файлам',
+  exportFilesReconnect: 'Сбросить подключение файлов',
   exportFilesUnconfigured:
     'Доступ к файлам для этого улучшения не настроен. Выберите другой формат или обратитесь к его автору',
   exportFilesRequired:
     'Для оригиналов вложений в ZIP подключите доступ к файлам. Trello дает доступ на чтение ко всему аккаунту на один день; улучшение скачивает файлы только с открытой доски',
   exportFilesAuthorizing: 'Завершите подключение файлов в окне Trello',
-  exportFilesConnected: 'Доступ к файлам подключен',
+  exportFilesConnected:
+    'Доступ к файлам подключен. Если срок истек, сбросьте подключение и подключитесь заново',
+  exportFilesResetting: 'Сбрасываем подключение файлов…',
   exportFilesAuthFailed:
     'Доступ к файлам не подключен. Повторите попытку или выберите другой формат',
 } satisfies { [Key in keyof typeof exportEn]: string };

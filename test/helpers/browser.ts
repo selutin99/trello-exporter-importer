@@ -28,6 +28,7 @@ export function installSdk() {
   const attachmentClient = {
     getToken: vi.fn().mockResolvedValue('synthetic-file-token'),
     authorize: vi.fn().mockResolvedValue(undefined),
+    clearToken: vi.fn().mockResolvedValue(undefined),
   };
   const client = {
     getAccessToken: vi.fn<OAuthClient['getAccessToken']>().mockResolvedValue('synthetic-token'),
