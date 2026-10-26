@@ -3,7 +3,7 @@ export const formatsEn = {
   formatNo: 'No',
   formatGlyphFallback:
     'Characters unavailable in the bundled fonts are preserved as Unicode notation such as [U+1F642]',
-  exportMarkdownNote: 'Readable board document, without attachment files',
+  exportMarkdownNote: 'Board structure and attachment links in Markdown',
   exportPdfNote: 'Paginated board document for reading and sharing',
   exportXlsxNote: 'Related worksheets with complete board data',
   exportCsvNote: 'One row per card, related collections as JSON cells',

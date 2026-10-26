@@ -4,7 +4,7 @@ export const formatsRu = {
   formatNo: 'Нет',
   formatGlyphFallback:
     'Символы, недоступные во встроенных шрифтах, сохранены в виде кодов Unicode, например [U+1F642]',
-  exportMarkdownNote: 'Доска в виде документа, без файлов вложений',
+  exportMarkdownNote: 'Структура доски и ссылки на вложения в Markdown',
   exportPdfNote: 'Документ с разбивкой на страницы для чтения и отправки',
   exportXlsxNote: 'Связанные листы с полными данными доски',
   exportCsvNote: 'Одна строка на карточку, связанные коллекции в ячейках JSON',

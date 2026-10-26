@@ -224,11 +224,13 @@ legend {
   padding: 0 0 12px;
 }
 .format-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
 }
 .format-option {
+  flex: 0 0 calc((100% - 12px) / 2);
   position: relative;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -279,10 +281,17 @@ legend {
   list-style: none;
   padding: 0;
   margin: 12px 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 9px 14px;
   font-size: 12px;
+}
+.included li {
+  flex: 0 0 calc((100% - 14px) / 2);
+}
+.included li:last-child:nth-child(odd) {
+  text-align: center;
 }
 .included li:not(#attachment-coverage)::before {
   content: '✓';
@@ -445,17 +454,18 @@ body [hidden] {
   .export-shell {
     padding: 0 18px 18px;
   }
-  .format-grid {
-    grid-template-columns: 1fr;
-  }
   .format-option {
+    flex-basis: 100%;
     padding: 13px;
   }
   .format-top {
     margin: 0;
   }
-  .included ul {
-    grid-template-columns: 1fr;
+  .included li {
+    flex-basis: 100%;
+  }
+  .included li:last-child:nth-child(odd) {
+    text-align: start;
   }
   .hero {
     margin-top: 22px;
