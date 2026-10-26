@@ -12,7 +12,7 @@ export const exportEn = {
   exportStructure: 'Active lists & cards',
   exportChecklists: 'Checklists & completed items',
   exportComments: 'Comments',
-  exportMetadata: 'Labels, dates & custom fields',
+  exportMetadata: 'Labels & dates',
   exportAttachmentLabel: 'Attachments',
   exportIncludedStatus: 'Included',
   exportExcludedStatus: 'Attachment files not included',

@@ -12,11 +12,7 @@ import { attachmentMatches } from './attachments';
 import { MergeActionKind, MergeChoice, MergeConflictKind, MergeField } from './types';
 import type { MergePlan, MergeRecord, MergeValue } from './types';
 
-const copyOnChange = new Set([
-  RestoreResource.Comment,
-  RestoreResource.Attachment,
-  RestoreResource.Option,
-]);
+const copyOnChange = new Set([RestoreResource.Comment, RestoreResource.Attachment]);
 const fieldNames = new Set<string>(Object.values(MergeField));
 
 /**
@@ -137,8 +133,6 @@ class Planner {
     let target = matches.direct;
     if (record.resource === RestoreResource.Board)
       target = this.#current.find((item) => item.resource === RestoreResource.Board) ?? null;
-    if (record.resource === RestoreResource.Value && matches.candidates.length === 1)
-      target = matches.candidates[0] ?? null;
     const requiresChoice = matches.candidates.length > 0 || matches.incompatible;
     if (!target && requiresChoice) target = this.#identity(record, matches.candidates);
     if (this.#skipped.has(record.key)) return;

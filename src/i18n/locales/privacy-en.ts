@@ -3,7 +3,7 @@ export const privacyEn = {
   privacyProcessing:
     'trello-exporter-importer prepares JSON, ZIP, Markdown, PDF, XLSX, and CSV files in your browser or Trello Desktop window',
   privacyScope:
-    'When opened as an authorized Trello Power-Up, export reads only the currently open board: active lists and cards, checklists, comments, labels, member display identities, custom fields, and attachment metadata. Archived lists and cards are excluded. ZIP downloads available Trello-uploaded files; external attachment links are not fetched. Export does not modify board data',
+    'When opened as an authorized Trello Power-Up, export reads only the currently open board: active lists and cards, checklists, comments, labels, member display identities, and attachment metadata. Archived lists and cards are excluded. ZIP downloads available Trello-uploaded files; external attachment links are not fetched. Export does not modify board data',
   privacyStorage:
     'The project operates no backend receiving board content, exports, files, or tokens. Prepared exports stay in memory until downloaded or the window is closed. Downloaded files may contain personal information; keep them private. Warnings identify unavailable content. Export takes time and is not an atomic backup',
   privacyRestore:

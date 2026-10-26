@@ -70,6 +70,7 @@ export interface Snapshot {
   }[];
   labels: { id: string; name: string; color: string | null }[];
   members: { id: string; username: string; displayName: string }[];
+  /** Legacy content; new captures retain an empty collection with excluded coverage */
   customFields: {
     id: string;
     name: string;
@@ -77,6 +78,7 @@ export interface Snapshot {
     order: number;
     options: { id: string; text: string; color: string; order: number }[];
   }[];
+  /** Legacy content validated on import and reported as an intentional omission */
   customFieldValues: {
     cardId: string;
     fieldId: string;

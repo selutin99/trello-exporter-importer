@@ -12,8 +12,14 @@ export function finishCapture(snapshot: Snapshot): void {
   if (incomplete.has(SnapshotSection.CustomFields))
     incomplete.add(SnapshotSection.CustomFieldValues);
   for (const section of snapshotCollections) {
+    const excluded =
+      snapshot.coverage[section]?.status === CoverageStatus.Excluded &&
+      snapshot[section].length === 0 &&
+      !incomplete.has(section);
+    let status = incomplete.has(section) ? CoverageStatus.Partial : CoverageStatus.Complete;
+    if (excluded) status = CoverageStatus.Excluded;
     snapshot.coverage[section] = {
-      status: incomplete.has(section) ? CoverageStatus.Partial : CoverageStatus.Complete,
+      status,
       count: snapshot[section].length,
     };
   }

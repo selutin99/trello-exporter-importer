@@ -13,7 +13,7 @@ import type { RestoreTarget } from './types';
 import type { ImportedBoard } from '../import/read';
 import type { MergePlan } from './merge/types';
 import { MergeActionKind } from './merge/types';
-import { restorationPlan } from './plan';
+import { excludedFieldRecords, restorationPlan } from './plan';
 
 // Keep existing checkpoints and uncertain-write guards across product renames.
 const key = 'trello-exporter-restore-journal';
@@ -184,8 +184,10 @@ export function createMergeJournal({
     status: RestoreStatus.Running,
     pending: null,
     completed: {},
-    skipped: [],
-    warnings: plan.actions.length ? restorationPlan(imported).warnings : [],
+    skipped: excludedFieldRecords(imported.snapshot),
+    warnings: restorationPlan(imported).warnings.filter(
+      (warning) => plan.actions.length > 0 || warning === RestoreWarning.CustomFields,
+    ),
     error: null,
     commentLocale: locale,
     mode: RestoreMode.Merge,

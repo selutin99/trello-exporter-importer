@@ -1,6 +1,11 @@
 import type { CapturedBoard } from '../../src/snapshot/capture';
 import { finishCapture } from '../../src/snapshot/coverage';
-import { AttachmentKind, CaptureOutcome, CustomFieldType } from '../../src/snapshot/codes';
+import {
+  AttachmentKind,
+  CaptureOutcome,
+  CoverageStatus,
+  CustomFieldType,
+} from '../../src/snapshot/codes';
 import type { BoardReader } from '../../src/api/reader';
 import { syntheticCards, syntheticFiles, syntheticLabels, syntheticLists } from './board-data';
 import { product } from '../../src/config/product';
@@ -26,7 +31,10 @@ export function createSyntheticCapture(): CapturedBoard {
       changedDuringCapture: false,
       outcome: CaptureOutcome.Complete,
     },
-    coverage: {},
+    coverage: {
+      customFields: { status: CoverageStatus.Excluded, count: 0 },
+      customFieldValues: { status: CoverageStatus.Excluded, count: 0 },
+    },
     board: {
       id: id(1),
       name: 'Studio launch',
@@ -46,19 +54,7 @@ export function createSyntheticCapture(): CapturedBoard {
       { id: id(30), username: 'demo-designer', displayName: 'Demo designer' },
       { id: id(31), username: 'demo-engineer', displayName: 'Demo engineer' },
     ],
-    customFields: [
-      {
-        id: id(40),
-        name: 'Priority',
-        type: CustomFieldType.List,
-        order: 0,
-        options: [
-          { id: id(41), text: 'Normal', color: 'blue', order: 0 },
-          { id: id(42), text: 'High', color: 'red', order: 1 },
-        ],
-      },
-      { id: id(45), name: 'Working note', type: CustomFieldType.Text, order: 1, options: [] },
-    ],
+    customFields: [],
     customFieldValues: [],
     checklists: [],
     checklistItems: [],
@@ -87,10 +83,6 @@ export function createSyntheticCapture(): CapturedBoard {
       cover: null,
     });
     const checklistId = id(200 + index);
-    snapshot.customFieldValues.push(
-      { cardId, fieldId: id(40), optionId: id(card.label === 1 ? 42 : 41) },
-      { cardId, fieldId: id(45), value: { text: `Synthetic note ${index + 1}` } },
-    );
     snapshot.checklists.push({ id: checklistId, cardId, name: 'Tasks', order: 0 });
     snapshot.checklistItems.push(
       ...card.items.map((name, itemIndex) => ({
@@ -138,6 +130,33 @@ export function createSyntheticCapture(): CapturedBoard {
   }
   finishCapture(snapshot);
   return { snapshot, uploads };
+}
+
+/**
+ * Adds legacy custom-field content for backward-compatibility and omission checks
+ * @returns A synthetic legacy capture with two field definitions and per-card values
+ */
+export function createLegacyFieldCapture(): CapturedBoard {
+  const capture = createSyntheticCapture();
+  capture.snapshot.customFields = [
+    {
+      id: id(40),
+      name: 'Priority',
+      type: CustomFieldType.List,
+      order: 0,
+      options: [
+        { id: id(41), text: 'Normal', color: 'blue', order: 0 },
+        { id: id(42), text: 'High', color: 'red', order: 1 },
+      ],
+    },
+    { id: id(45), name: 'Working note', type: CustomFieldType.Text, order: 1, options: [] },
+  ];
+  capture.snapshot.customFieldValues = capture.snapshot.cards.flatMap((card, index) => [
+    { cardId: card.id, fieldId: id(40), optionId: id(index % 2 ? 42 : 41) },
+    { cardId: card.id, fieldId: id(45), value: { text: `Synthetic note ${index + 1}` } },
+  ]);
+  finishCapture(capture.snapshot);
+  return capture;
 }
 
 /** Original synthetic bytes for archive tests without an HTTP implementation */

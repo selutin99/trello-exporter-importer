@@ -32,7 +32,7 @@ existing board.
 ## Features
 
 - Capture active lists, active cards, descriptions, labels, dates, checklists,
-  comments, custom fields, and attachment metadata
+  comments, and attachment metadata
 - Bundle available original Trello uploads in a ZIP with SHA-256 integrity checks
 - Restore supported content into the **currently open board**, with a comparison
   before any writes and explicit choices for conflicting values
@@ -42,9 +42,9 @@ existing board.
 - Process files locally, switch between English and Russian, and use light or
   dark themes
 
-Snapshots describe current content over a capture interval. Archived lists and
-cards, activity history, scheduled backups, and continuous synchronization are
-outside the export scope.
+Snapshots describe current content over a capture interval. Custom fields,
+archived lists and cards, activity history, scheduled backups, and continuous
+synchronization are outside the MVP scope.
 
 ## Export flow
 
@@ -119,7 +119,7 @@ flowchart TD
 | Missing object with no matching candidate | Add it under its mapped parent                                                       |
 | Same name with different IDs              | Ask which current object to match, add separately, or skip the snapshot object       |
 | Different supported values                | Require **Keep current** or **Use file** per field; bulk value choices are available |
-| Changed comment, attachment, or option    | Keep the current object or add a separate copy from the snapshot                     |
+| Changed comment or attachment             | Keep the current object or add a separate copy from the snapshot                     |
 | Content present only on the current board | Preserve it                                                                          |
 | Board changes after review                | Stop and require a fresh comparison                                                  |
 
@@ -128,7 +128,7 @@ contain a common ancestor for an automatic three-way merge. Names are candidates
 not proof of identity. Selecting a different object can reveal further field
 conflicts; all must be resolved before applying.
 
-Existing positions are preserved. New lists, cards, checklists, items, and options
+Existing positions are preserved. New lists, cards, checklists, and items
 are appended in snapshot order. A card's destination list can be an explicit
 conflict. Board name, privacy, memberships, and permissions remain unchanged;
 board description is a selectable content difference. Import never deletes or
@@ -168,6 +168,11 @@ UTF-8 JSON. It contains board metadata, normalized collections with source-ID
 relationships, capture information, per-section `coverage`, and `issues`. Dates
 use UTC; unknown values are explicit. Collection arrays remain present when empty.
 Sibling `order` values preserve relative order instead of Trello's numeric `pos`.
+
+New snapshots retain empty `customFields` and `customFieldValues` arrays with
+`excluded` coverage. These collections remain in the executable schema so older
+JSON/ZIP files can still be validated. Import skips their field definitions,
+options, and values and reports the omissions; existing board fields are preserved.
 
 New files identify their producer as `trello-exporter-importer`. Import also accepts
 the former `trello-exporter` producer name. The serialized identifiers
@@ -339,8 +344,8 @@ and checkpoint classes implement these contracts without defining the domain's
 interfaces; scoped I/O contracts live in `restore/writer.ts`.
 `RestoreApi` coordinates fixed API paths with `RestoreScope` ownership checks
 and pure payload guards in `restore/payloads.ts`. Unsupported optional writes
-and their dependent values are reported as omissions; a rejected dropdown copy
-never substitutes the conflicting old option. Format renderers consume the
+are reported as omissions. Legacy custom fields are excluded before planning and
+never dispatch field API requests. Format renderers consume the
 normalized snapshot independently of the SDK and restoration workflow.
 
 `snapshot/coverage.ts` finalizes section counts and completeness independently of

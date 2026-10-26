@@ -14,7 +14,7 @@ test('XLSX stores related sheets, typed dates/booleans, literal formula-like str
   const entries = unzipSync(bytes);
   const xml = (path: string) => strFromU8(entries[path]!);
   expect(xml('xl/workbook.xml')).toContain('ChecklistItems');
-  expect(xml('xl/workbook.xml')).toContain('CustomFieldValues');
+  expect(xml('xl/workbook.xml')).not.toContain('CustomField');
   const worksheet = xml('xl/worksheets/sheet3.xml');
   expect(worksheet).toContain('ySplit="1"');
   expect(worksheet).toContain('t="b"');
@@ -42,7 +42,7 @@ test('long spreadsheet text is preserved in ordered continuation rows rather tha
     ...new DOMParser().parseFromString(xml, 'application/xml').getElementsByTagName('si'),
   ].map((item) => item.textContent ?? '');
   const doc = new DOMParser().parseFromString(
-    strFromU8(entries['xl/worksheets/sheet16.xml']!),
+    strFromU8(entries['xl/worksheets/sheet13.xml']!),
     'application/xml',
   );
   const rows = [...doc.getElementsByTagName('row')].slice(1);

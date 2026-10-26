@@ -1,7 +1,5 @@
 import { assert, expect, test, vi } from 'vitest';
 import { ApiErrorCode } from '../../src/shared/error-codes';
-import { HttpMethod } from '../../src/api/types';
-import { CustomFieldType } from '../../src/snapshot/codes';
 import { attributedComment } from '../../src/restore/comments';
 import { RestoreEngine } from '../../src/restore/engine';
 import {
@@ -10,7 +8,11 @@ import {
   RestoreWarning,
   RestoreErrorCode,
 } from '../../src/restore/codes';
-import { createSyntheticCapture, syntheticFileReader } from '../helpers/board-capture';
+import {
+  createSyntheticCapture,
+  createLegacyFieldCapture,
+  syntheticFileReader,
+} from '../helpers/board-capture';
 import { buildArchive, jsonBytes } from '../../src/snapshot/archive';
 import { readImport } from '../../src/import/read';
 import type { ImportedBoard } from '../../src/import/read';
@@ -19,7 +21,7 @@ import { MemoryJournal, restorationFixture, restoreJournal, targetId } from '../
 import { sourceBoard, id } from '../helpers/snapshot';
 import type { RestoreOptions } from '../../src/restore/types';
 import { buildMergePlan } from '../../src/restore/merge/planner';
-import { MergeChoice, MergeField } from '../../src/restore/merge/types';
+import { MergeChoice } from '../../src/restore/merge/types';
 
 type Fixture = ReturnType<typeof restorationFixture>;
 async function imported(zip = false) {
@@ -45,59 +47,6 @@ async function run(
   });
 }
 const writes = (fixture: Fixture) => fixture.calls.filter((call) => call.method !== 'GET');
-
-test.each([
-  [CustomFieldType.Checkbox, { value: { checked: 'true' } }],
-  [CustomFieldType.Date, { value: { date: '2026-11-20T12:00:00Z' } }],
-  [CustomFieldType.List, { optionId: id(41) }],
-  [CustomFieldType.Number, { value: { number: '12.5' } }],
-  [CustomFieldType.Text, { value: { text: 'Synthetic field value' } }],
-] as const)(
-  'restores a %s field and its value against a strict options contract',
-  async (type, value) => {
-    const capture = createSyntheticCapture();
-    const [field] = capture.snapshot.customFields;
-    const [card] = capture.snapshot.cards;
-    assert(field && card);
-    capture.snapshot.customFields = [
-      { ...field, type, options: type === CustomFieldType.List ? field.options : [] },
-    ];
-    capture.snapshot.customFieldValues = [{ cardId: card.id, fieldId: field.id, ...value }];
-    const input = await readImport(await buildArchive(capture, syntheticFileReader));
-    const fixture = restorationFixture((call) => {
-      if (
-        call.method === String(HttpMethod.Post) &&
-        call.path === '/customFields' &&
-        !(call.body instanceof FormData) &&
-        Object.hasOwn(call.body, 'options') &&
-        (call.body.type !== CustomFieldType.List || !Array.isArray(call.body.options))
-      )
-        return new Response('Invalid custom field options', { status: 400 });
-    });
-    const report = await run(fixture, input);
-    expect(report.error).toBeNull();
-    expect(report.skipped).toEqual([]);
-    const current = await fixture.api.snapshot(await fixture.api.context(sourceBoard.id));
-    expect(current.customFields).toHaveLength(1);
-    expect(current.customFieldValues).toHaveLength(1);
-    const [restoredField] = current.customFields;
-    const [restoredValue] = current.customFieldValues;
-    assert(restoredField && restoredValue);
-    expect(restoredField).toMatchObject({ name: field.name, type });
-    expect(restoredField.options.map((option) => option.text)).toEqual(
-      type === CustomFieldType.List ? field.options.map((option) => option.text) : [],
-    );
-    expect(restoredValue.fieldId).toBe(restoredField.id);
-    if ('optionId' in value) {
-      const optionId = report.bindings?.[`options/${value.optionId}`];
-      assert(optionId);
-      expect(restoredValue.optionId).toBe(optionId);
-    } else expect(restoredValue.value).toEqual(value.value);
-    const before = writes(fixture).length;
-    await run(fixture, input);
-    expect(writes(fixture)).toHaveLength(before);
-  },
-);
 
 test.each([false, true])(
   'JSON/ZIP add missing content to the current board without creating a board: zip=%s',
@@ -232,19 +181,6 @@ test.each([408, 503])(
   },
 );
 
-test('optional destination restrictions explicitly omit fields and their dependent content', async () => {
-  const fixture = restorationFixture((call) =>
-    call.method === 'POST' && call.path === '/customFields'
-      ? new Response('', { status: 403 })
-      : undefined,
-  );
-  const report = await run(fixture, await imported());
-  expect(report.status).toBe(RestoreStatus.Partial);
-  expect(report.warnings).toContain(RestoreWarning.Unsupported);
-  expect(report.skipped.some((key) => key.startsWith(RestoreResource.Field))).toBe(true);
-  expect(writes(fixture).some((call) => call.path.includes('/customField/'))).toBe(false);
-});
-
 test('storage failure before writes and mismatched continuation cannot mutate the board', async () => {
   const fixture = restorationFixture();
   const input = await imported();
@@ -269,17 +205,6 @@ test('cancellation before dispatch stores a known checkpoint without deleting co
   expect(report.status).toBe(RestoreStatus.Cancelled);
   expect(report.pending).toBeNull();
   expect(writes(fixture)).toHaveLength(0);
-});
-
-test('unset custom fields do not clear current values', async () => {
-  const input = await imported();
-  for (const value of input.snapshot.customFieldValues) {
-    delete value.value;
-    delete value.optionId;
-  }
-  const fixture = restorationFixture();
-  await run(fixture, input);
-  expect(writes(fixture).some((call) => call.method === 'PUT')).toBe(false);
 });
 
 test('lost journal storage after a confirmed write returns an uncertain report', async () => {
@@ -320,7 +245,7 @@ test.each([false, true])(
 test('a rate limit on an optional write remains resumable instead of permanently skipped', async () => {
   let limited = true;
   const fixture = restorationFixture((call) =>
-    limited && call.method === 'POST' && call.path === '/customFields'
+    limited && call.method === 'POST' && call.path.endsWith('/actions/comments')
       ? new Response('', { status: 429 })
       : undefined,
   );
@@ -330,7 +255,9 @@ test('a rate limit on an optional write remains resumable instead of permanently
   expect(failed.skipped).toEqual([]);
   limited = false;
   expect((await run(fixture, input, { resume: true })).status).toBe(RestoreStatus.Partial);
-  expect(fixture.children('/customFields')).toHaveLength(2);
+  expect(
+    fixture.calls.some((call) => call.method === 'POST' && call.path.endsWith('/actions/comments')),
+  ).toBe(true);
 });
 
 test('a failed parent read does not permanently skip an optional object', async () => {
@@ -343,7 +270,7 @@ test('a failed parent read does not permanently skip an optional object', async 
   const input = await imported();
   const report = await run(fixture, input, {
     onProgress: ({ resource }) => {
-      if (resource === RestoreResource.Field) failReads = true;
+      if (resource === RestoreResource.Comment) failReads = true;
     },
   });
   expect(report.status).toBe(RestoreStatus.Failed);
@@ -467,7 +394,7 @@ test('JSON imports recreate available file links once and retain that mapping on
   expect(writes(fixture)).toHaveLength(before);
 });
 
-test('reviewed item, list, label, and custom value differences update only selected fields', async () => {
+test('reviewed item, list, and label differences update only selected fields', async () => {
   const input = await imported();
   const fixture = restorationFixture(undefined, input.snapshot);
   fixture.records.get(`/lists/${input.snapshot.lists[0]!.id}`)!.name = 'Current list';
@@ -476,13 +403,9 @@ test('reviewed item, list, label, and custom value differences update only selec
   fixture.records.get(`/checklists/${item.checklistId}/checkItems/${item.id}`)!.state = item.checked
     ? 'incomplete'
     : 'complete';
-  const value = input.snapshot.customFieldValues.find((value) => value.value)!;
-  fixture.records.get(`/cards/${value.cardId}/customFieldItems/${value.fieldId}`)!.value = {
-    text: 'Current text',
-  };
   const report = await run(fixture, input);
   expect(report.status).toBe(RestoreStatus.Partial);
-  expect(writes(fixture).filter((call) => call.method === 'PUT')).toHaveLength(4);
+  expect(writes(fixture).filter((call) => call.method === 'PUT')).toHaveLength(3);
   expect((await fixture.plan(input)).actions).toHaveLength(0);
 });
 
@@ -506,33 +429,28 @@ test.each([RestoreStatus.Unknown, RestoreStatus.Running])(
   },
 );
 
-test('a rejected dropdown copy omits its dependent value instead of using the old option', async () => {
-  const input = await imported();
-  const destination = structuredClone(input.snapshot);
-  const field = destination.customFields[0];
-  const option = field?.options[0];
-  assert(field && option);
-  option.text = 'Current option';
-  const fixture = restorationFixture(
-    (call) =>
-      call.method === 'POST' && call.path.endsWith('/options')
-        ? new Response('', { status: 403 })
-        : undefined,
-    destination,
-  );
-  const current = await fixture.api.snapshot(await fixture.api.context(sourceBoard.id));
-  const conflict = buildMergePlan(input, current).conflicts.find(
-    (item) => item.record.sourceId === option.id,
-  );
-  assert(conflict);
-  const decisions = { [conflict.key]: MergeChoice.Snapshot };
-  const withCopy = buildMergePlan(input, current, decisions);
-  for (const item of withCopy.conflicts)
-    if (item.field === MergeField.Value) decisions[item.key] = MergeChoice.Snapshot;
-  const plan = buildMergePlan(input, current, decisions);
-  expect(plan.unresolved).toBe(0);
-  const report = await run(fixture, input, { plan });
-  expect(report.status).toBe(RestoreStatus.Partial);
-  expect(report.skipped.some((key) => key.startsWith(`${RestoreResource.Value}/`))).toBe(true);
-  expect(writes(fixture).filter((call) => call.method === 'PUT')).toHaveLength(0);
-});
+test.each([false, true])(
+  'legacy custom fields are explicitly omitted without any field API calls: zip=%s',
+  async (zipped) => {
+    const capture = createLegacyFieldCapture();
+    const input = await readImport(
+      zipped
+        ? await buildArchive(capture, syntheticFileReader)
+        : new Blob([jsonBytes(capture.snapshot)]),
+    );
+    const fixture = restorationFixture(undefined, capture.snapshot);
+    const before = structuredClone([...fixture.records.entries()]);
+    const report = await run(fixture, input);
+    expect(report.status).toBe(RestoreStatus.Partial);
+    expect(report.warnings).toContain(RestoreWarning.CustomFields);
+    expect(report.skipped).toHaveLength(16);
+    expect(
+      fixture.calls.some((call) => /customFields|customFieldItems|customField\//.test(call.path)),
+    ).toBe(false);
+    expect(writes(fixture)).toHaveLength(0);
+    expect([...fixture.records.entries()]).toEqual(before);
+    const again = await run(fixture, input);
+    expect(again.warnings).toContain(RestoreWarning.CustomFields);
+    expect(writes(fixture)).toHaveLength(0);
+  },
+);

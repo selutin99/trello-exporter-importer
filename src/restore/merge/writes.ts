@@ -88,21 +88,6 @@ export function createPayload(
       return { name, pos: 'bottom' };
     case RestoreResource.Label:
       return { name, color: fields[MergeField.Color] };
-    case RestoreResource.Field:
-      // Dropdown options are separate writes so their new IDs can be mapped.
-      return {
-        name,
-        type: fields[MergeField.Type],
-        idModel: parentId,
-        modelType: 'board',
-        pos: 'bottom',
-      };
-    case RestoreResource.Option:
-      return {
-        value: { text: fields[MergeField.Text] },
-        color: fields[MergeField.Color],
-        pos: 'bottom',
-      };
     case RestoreResource.Card:
       return {
         idList: parentId,

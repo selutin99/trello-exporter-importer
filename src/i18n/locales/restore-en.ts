@@ -8,7 +8,7 @@ export const restoreEn = {
   restoreUnchanged: 'Already matches',
   restoreUnresolved: 'Unresolved conflicts',
   restoreMergeScope:
-    'Current-only content and existing positions are preserved, missing items are appended in file order. Different values require an explicit choice. Changed comments, attachments, and dropdown options are added as separate copies when values from the file are selected',
+    'Current-only content and existing positions are preserved, missing items are appended in file order. Different values require an explicit choice. Changed comments and attachments are added as separate copies when values from the file are selected',
   restoreKeepAll: 'Keep all current values',
   restoreUseAll: 'Use all values from the file',
   restoreSelectResolution: 'Choose a resolution',
@@ -99,6 +99,7 @@ export const restoreEn = {
     'Some attachment bytes are missing; available source links are recreated as links',
   [RestoreWarning.CommentSummary]:
     'Original comments become attributed text summaries posted by the restoring user',
+  [RestoreWarning.CustomFields]: 'Custom fields from older exports are not imported',
   [RestoreWarning.Unsupported]:
     'Some optional content was unavailable in the destination Workspace',
 } as const;

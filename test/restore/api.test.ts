@@ -89,7 +89,28 @@ test('field updates compare current values immediately before PUT and reject uns
   expect(fixture.calls.filter((call) => call.method === 'PUT')).toHaveLength(1);
 });
 
-test('checklist and dropdown updates stay anchored to verified parents and reviewed values', async () => {
+test.each([RestoreResource.Field, RestoreResource.Option, RestoreResource.Value])(
+  'legacy %s writes and field reads are rejected before custom-field requests',
+  async (resource) => {
+    const fixture = restorationFixture();
+    await fixture.api.selectTarget(await fixture.api.context(sourceBoard.id));
+    await expect(
+      fixture.api.create(resource, targetId, { name: 'Excluded', idModel: targetId }),
+    ).rejects.toThrow(ScopeError);
+    await expect(fixture.api.verifyEntity(RestoreResource.Field, id(40))).rejects.toThrow(
+      ScopeError,
+    );
+    await expect(fixture.api.verifyNested(RestoreResource.Option, id(40), id(41))).rejects.toThrow(
+      ScopeError,
+    );
+    expect(fixture.calls.some((call) => /customFields|customFieldItems/.test(call.path))).toBe(
+      false,
+    );
+    expect(fixture.calls.some((call) => call.method !== 'GET')).toBe(false);
+  },
+);
+
+test('checklist updates stay anchored to verified parents and reviewed values', async () => {
   const fixture = restorationFixture(undefined, createSyntheticCapture().snapshot);
   await fixture.api.selectTarget(await fixture.api.context(sourceBoard.id));
   const item = fixture.records.get(`/checklists/${id(200)}/checkItems/${id(1000)}`)!;
@@ -103,11 +124,7 @@ test('checklist and dropdown updates stay anchored to verified parents and revie
   await expect(fixture.api.verifyEntity(RestoreResource.Board, targetId)).rejects.toThrow(
     ScopeError,
   );
-  await fixture.api.value(id(100), id(40), { idValue: id(42) }, {}, { idValue: id(41) });
-  await expect(
-    fixture.api.value(id(100), id(40), { idValue: id(41) }, {}, null),
-  ).rejects.toMatchObject({ code: RestoreErrorCode.PlanStale });
-  expect(fixture.calls.filter((call) => call.method === 'PUT')).toHaveLength(2);
+  expect(fixture.calls.filter((call) => call.method === 'PUT')).toHaveLength(1);
 });
 
 test('a card in an archived list and a checklist on a moved card are rejected before nested writes', async () => {

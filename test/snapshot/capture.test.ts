@@ -44,6 +44,8 @@ test('JSON and ZIP exclude archived objects and never request their nested conte
     expect(snapshot.checklists.map((checklist) => checklist.cardId)).toEqual([sourceCard.id]);
     expect(snapshot.comments.map((comment) => comment.cardId)).toEqual([sourceCard.id]);
     expect(snapshot.capture.outcome).toBe('complete');
+    expect(snapshot.coverage.customFields).toEqual({ status: 'excluded', count: 0 });
+    expect(snapshot.coverage.customFieldValues).toEqual({ status: 'excluded', count: 0 });
   }
   expect(downloadedCards).toEqual([sourceCard.id]);
   expect(
@@ -55,7 +57,7 @@ test('JSON and ZIP exclude archived objects and never request their nested conte
   ).toBe(false);
 });
 
-test('capture preserves active current content, custom values, order, and explicit JSON file exclusions', async () => {
+test('capture preserves active content and excludes custom fields without requesting them', async () => {
   const { reader, calls } = readerFixture();
   const stages: string[] = [];
   const { snapshot, uploads } = await captureBoard(reader, id(1), {
@@ -67,11 +69,11 @@ test('capture preserves active current content, custom values, order, and explic
     dueComplete: true,
     description: sourceCard.desc,
   });
-  expect(snapshot.customFields).toHaveLength(2);
-  expect(snapshot.customFieldValues).toEqual([
-    { cardId: id(3), fieldId: id(11), optionId: id(12) },
-    { cardId: id(3), fieldId: id(13), value: { text: 'Synthetic value' } },
-  ]);
+  expect(snapshot.customFields).toEqual([]);
+  expect(snapshot.customFieldValues).toEqual([]);
+  expect(snapshot.coverage.customFields).toEqual({ status: 'excluded', count: 0 });
+  expect(snapshot.coverage.customFieldValues).toEqual({ status: 'excluded', count: 0 });
+  expect(calls.some((url) => /customFields|customFieldItems/.test(url.pathname))).toBe(false);
   expect(snapshot.checklistItems.map((item) => item.name)).toEqual(['Next', 'Done ✓']);
   expect(snapshot.checklistItems[1]?.memberId).toBe(id(6));
   expect(snapshot.coverage.attachmentFiles).toEqual({ status: 'excluded', count: 0 });
@@ -91,13 +93,7 @@ test('optional section failures and unsafe links become explicit partial coverag
   });
   const { snapshot } = await captureBoard(reader, id(1));
   expect(snapshot.capture.outcome).toBe('partial');
-  for (const section of [
-    'checklists',
-    'checklistItems',
-    'customFields',
-    'customFieldValues',
-    'attachments',
-  ])
+  for (const section of ['checklists', 'checklistItems', 'attachments'])
     expect(snapshot.coverage[section]?.status).toBe('partial');
   expect(snapshot.issues.some((issue) => issue.code === IssueCode.UnsafeLink)).toBe(true);
 });
@@ -148,23 +144,16 @@ test('changes and failed final verification are recorded in board coverage', asy
   }
 });
 
-test('dangling member, label, field, and option references cannot produce a valid snapshot', async () => {
-  const cases = [
-    { [`/1/boards/${id(1)}/members`]: [] },
-    { [`/1/boards/${id(1)}/labels`]: [] },
-    { [`/1/cards/${id(3)}/customFieldItems`]: [{ idCustomField: id(99), value: { text: 'x' } }] },
-    { [`/1/cards/${id(3)}/customFieldItems`]: [{ idCustomField: id(11), idValue: id(99) }] },
-  ];
+test('dangling member and label references cannot produce a valid snapshot', async () => {
+  const cases = [{ [`/1/boards/${id(1)}/members`]: [] }, { [`/1/boards/${id(1)}/labels`]: [] }];
   for (const data of cases)
     await expect(captureBoard(readerFixture(data).reader, id(1))).rejects.toThrow(ScopeError);
 });
 
-test('an absent comment author and empty custom values are preserved safely', async () => {
+test('an absent comment author is preserved safely', async () => {
   const { reader } = readerFixture({
     [`/1/cards/${id(3)}/actions`]: [{ ...sourceComment, memberCreator: undefined }],
-    [`/1/cards/${id(3)}/customFieldItems`]: [{ idCustomField: id(13) }],
   });
   const { snapshot } = await captureBoard(reader, id(1));
   expect(snapshot.comments[0]?.authorId).toBeNull();
-  expect(snapshot.customFieldValues[0]).toEqual({ cardId: id(3), fieldId: id(13) });
 });

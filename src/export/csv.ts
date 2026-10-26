@@ -23,7 +23,6 @@ export function cardTable(snapshot: Snapshot): (string | boolean)[][] {
       'members',
       'checklists',
       'comments',
-      'custom_fields',
       'attachments',
     ],
   ];
@@ -46,12 +45,6 @@ export function cardTable(snapshot: Snapshot): (string | boolean)[][] {
         JSON.stringify(snapshot.members.filter((member) => card.memberIds.includes(member.id))),
         JSON.stringify(checklists),
         JSON.stringify(relations.comments.get(card.id) ?? []),
-        JSON.stringify(
-          (relations.values.get(card.id) ?? []).map((item) => ({
-            ...item,
-            field: relations.fields.get(item.fieldId),
-          })),
-        ),
         JSON.stringify(relations.attachments.get(card.id) ?? []),
       ]);
     }

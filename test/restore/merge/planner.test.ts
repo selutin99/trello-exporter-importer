@@ -7,7 +7,7 @@ import {
   MergeField,
 } from '../../../src/restore/merge/types';
 import { RestoreErrorCode, RestoreResource } from '../../../src/restore/codes';
-import { IssueCode, CustomFieldType, AttachmentKind } from '../../../src/snapshot/codes';
+import { IssueCode, AttachmentKind } from '../../../src/snapshot/codes';
 import { createSyntheticCapture } from '../../helpers/board-capture';
 import { readImport } from '../../../src/import/read';
 import { jsonBytes } from '../../../src/snapshot/encoding';
@@ -149,23 +149,6 @@ test('ambiguous duplicate names never select a candidate automatically or share 
   expect(plan.bindings[`lists/${source.id}`]).not.toBe(id(801));
 });
 
-test('incompatible field types require create/skip instead of an unsupported type update', async () => {
-  const { input, current } = await setup();
-  current.customFields[0]!.type = CustomFieldType.Text;
-  current.customFields[0]!.options = [];
-  const key = `match/customFields/${input.snapshot.customFields[0]!.id}`;
-  const conflict = buildMergePlan(input, current).conflicts.find((item) => item.key === key)!;
-  expect(conflict.candidates).toEqual([]);
-  const skipped = buildMergePlan(input, current, { [key]: MergeChoice.Skip });
-  expect(
-    skipped.actions.filter((action) => action.record.resource === RestoreResource.Value),
-  ).toHaveLength(0);
-  const created = buildMergePlan(input, current, { [key]: MergeChoice.Create });
-  expect(created.actions.some((action) => action.record.resource === RestoreResource.Field)).toBe(
-    true,
-  );
-});
-
 test('skipping a label removes unresolved references from newly created cards', async () => {
   const { input, current } = await setup();
   const label = input.snapshot.labels[0]!;
@@ -180,20 +163,6 @@ test('skipping a label removes unresolved references from newly created cards', 
         ?.labelIds.includes(label.id),
   )!;
   expect(JSON.stringify(action.record.fields[MergeField.Labels])).not.toContain(label.id);
-});
-
-test('dropdown copies trigger a dependent value conflict and preserve the old option', async () => {
-  const { input, current } = await setup();
-  const option = current.customFields[0]!.options[0]!;
-  option.text = 'Current option';
-  const first = buildMergePlan(input, current);
-  const conflict = first.conflicts.find((item) => item.record.sourceId === option.id)!;
-  const plan = buildMergePlan(input, current, { [conflict.key]: MergeChoice.Snapshot });
-  expect(plan.actions.find((action) => action.record.sourceId === option.id)?.kind).toBe(
-    MergeActionKind.Copy,
-  );
-  expect(plan.conflicts.some((item) => item.record.resource === RestoreResource.Value)).toBe(true);
-  expect(current.customFields[0]!.options).toHaveLength(2);
 });
 
 test('changed comments and attachments offer separate copies without overwriting current objects', async () => {

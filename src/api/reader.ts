@@ -13,8 +13,6 @@ import {
   cardSchema,
   checklistSchema,
   commentSchema,
-  customFieldSchema,
-  customValueSchema,
   labelSchema,
   memberSchema,
   parseResponse,
@@ -27,8 +25,6 @@ import type {
   SourceComment,
   SourceLabel,
   SourceMember,
-  SourceCustomField,
-  SourceCustomValue,
 } from './schemas';
 
 /** Read-only content API restricted to one verified board and its discovered cards */
@@ -143,23 +139,6 @@ export class BoardReader {
   }
 
   /**
-   * Reads custom field definitions for this board
-   * @param options - Optional cancellation signal
-   * @returns Supported field definitions
-   * @throws ApiError when fields are unavailable or invalid
-   */
-  async customFields(options: RequestOptions = {}): Promise<SourceCustomField[]> {
-    return parseResponse(
-      z.array(customFieldSchema),
-      await this.#transport.request(
-        HttpMethod.Get,
-        `/boards/${this.#scope.boardId}/customFields`,
-        options,
-      ),
-    );
-  }
-
-  /**
    * Reads attachment metadata without following external links
    * @param cardId - Previously discovered card identity
    * @param options - Optional cancellation signal
@@ -258,20 +237,6 @@ export class BoardReader {
       if (comment.data.card.id !== cardId) throw new ScopeError();
     }
     return comments;
-  }
-
-  /**
-   * Reads values for the board's custom field definitions
-   * @param cardId - Previously discovered card identity
-   * @param options - Optional cancellation signal
-   * @returns Validated values
-   * @throws ScopeError for an unknown card; ApiError on unreadable values
-   */
-  async customValues(cardId: string, options: RequestOptions = {}): Promise<SourceCustomValue[]> {
-    return parseResponse(
-      z.array(customValueSchema),
-      await this.#cardRequest(cardId, 'customFieldItems', {}, options),
-    );
   }
 
   #assertCard(cardId: string): void {

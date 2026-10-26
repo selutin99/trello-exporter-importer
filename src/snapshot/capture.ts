@@ -4,7 +4,7 @@ import type { BoardReader } from '../api/reader';
 import type { SourceAttachment } from '../api/schemas';
 import { serviceUrls } from '../config/services';
 import { product } from '../config/product';
-import { CaptureOutcome, ExportStage, IssueCode, SnapshotSection } from './codes';
+import { CaptureOutcome, CoverageStatus, ExportStage, IssueCode, SnapshotSection } from './codes';
 import { finishCapture } from './coverage';
 export { finishCapture } from './coverage';
 import {
@@ -57,7 +57,10 @@ export async function captureBoard(
       changedDuringCapture: null,
       outcome: CaptureOutcome.Complete,
     },
-    coverage: {},
+    coverage: {
+      [SnapshotSection.CustomFields]: { status: CoverageStatus.Excluded, count: 0 },
+      [SnapshotSection.CustomFieldValues]: { status: CoverageStatus.Excluded, count: 0 },
+    },
     board: {
       id: board.id,
       name: board.name,
@@ -88,20 +91,6 @@ export async function captureBoard(
   };
   const uploads = new Map<string, SourceAttachment>();
   const optional = optionalSection(snapshot, signal);
-  await optional(SnapshotSection.CustomFields, null, async () => {
-    snapshot.customFields = ordered(await reader.customFields(request)).map((field) => ({
-      id: field.id,
-      name: field.name,
-      type: field.type,
-      order: field.order,
-      options: ordered(field.options ?? []).map((option) => ({
-        id: option.id,
-        text: option.value.text,
-        color: option.color,
-        order: option.order,
-      })),
-    }));
-  });
   for (const [index, card] of cards.entries()) {
     signal?.throwIfAborted();
     onProgress?.({ stage: ExportStage.Content, current: index, total: cards.length });
@@ -122,18 +111,6 @@ export async function captureBoard(
         if (attachment.isUpload) uploads.set(attachment.id, attachment);
       }
     });
-    if (snapshot.customFields.length > 0)
-      await optional(SnapshotSection.CustomFieldValues, card.id, async () => {
-        const values = await reader.customValues(card.id, request);
-        snapshot.customFieldValues.push(
-          ...values.map((value) => ({
-            cardId: card.id,
-            fieldId: value.idCustomField,
-            ...(value.value ? { value: value.value } : {}),
-            ...(value.idValue ? { optionId: value.idValue } : {}),
-          })),
-        );
-      });
   }
   await optional(SnapshotSection.Board, null, async () => {
     const after = await reader.board(contextBoardId, request);
@@ -168,7 +145,6 @@ function optionalSection(snapshot: Snapshot, signal?: AbortSignal) {
 function assertReferences(snapshot: Snapshot): void {
   const labels = new Set(snapshot.labels.map((label) => label.id));
   const members = new Set(snapshot.members.map((member) => member.id));
-  const fields = new Map(snapshot.customFields.map((field) => [field.id, field]));
   if (
     snapshot.cards.some(
       (card) =>
@@ -177,9 +153,4 @@ function assertReferences(snapshot: Snapshot): void {
     )
   )
     throw new ScopeError();
-  for (const value of snapshot.customFieldValues) {
-    const field = fields.get(value.fieldId);
-    if (!field || (value.optionId && !field.options.some((option) => option.id === value.optionId)))
-      throw new ScopeError();
-  }
 }

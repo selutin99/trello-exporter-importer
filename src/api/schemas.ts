@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { ApiError } from './errors';
 import { ApiErrorCode } from '../shared/error-codes';
-import { CustomFieldType } from '../snapshot/codes';
 import { CheckItemState, TrelloActionType } from './types';
 
 const id = z.string().regex(/^[a-f0-9]{24}$/);
@@ -72,30 +71,6 @@ export const commentSchema = z.object({
 });
 export const labelSchema = z.object({ id, name: z.string(), color: z.string().nullable() });
 export const memberSchema = z.object({ id, username: z.string(), fullName: z.string() });
-export const customFieldSchema = z.object({
-  id,
-  name: z.string(),
-  type: z.enum(CustomFieldType),
-  pos: position,
-  options: z
-    .array(
-      z.object({ id, value: z.object({ text: z.string() }), color: z.string(), pos: position }),
-    )
-    .optional(),
-});
-export const customValueSchema = z.object({
-  idCustomField: id,
-  idValue: id.optional(),
-  value: z
-    .object({
-      text: z.string().optional(),
-      number: z.string().optional(),
-      date: z.string().optional(),
-      checked: z.string().optional(),
-    })
-    .optional(),
-});
-
 /**
  * Projects untrusted API data through an explicit schema without leaking response data
  * @param schema - Allowed response shape
@@ -116,5 +91,3 @@ export type SourceChecklist = z.infer<typeof checklistSchema>;
 export type SourceComment = z.infer<typeof commentSchema>;
 export type SourceLabel = z.infer<typeof labelSchema>;
 export type SourceMember = z.infer<typeof memberSchema>;
-export type SourceCustomField = z.infer<typeof customFieldSchema>;
-export type SourceCustomValue = z.infer<typeof customValueSchema>;

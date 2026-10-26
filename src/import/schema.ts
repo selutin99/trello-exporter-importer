@@ -75,6 +75,7 @@ const snapshotSchema = z.object({
   ),
   labels: collection(z.object({ id, name: text, color: z.string().max(30).nullable() })),
   members: collection(z.object({ id, username: text, displayName: text })),
+  // Legacy fields stay validated for compatibility, but are excluded from MVP capture and writes.
   customFields: collection(
     z.object({
       id,

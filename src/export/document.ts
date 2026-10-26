@@ -4,7 +4,6 @@ import { orderedRecords } from '../snapshot/collections';
 import type { Snapshot } from '../snapshot/types';
 import { translations } from '../i18n';
 import type { Locale } from '../i18n';
-import { CustomFieldType } from '../snapshot/codes';
 
 export enum BlockKind {
   Title = 'title',
@@ -59,27 +58,6 @@ function metadata(
     .filter((entry) => entry[1])
     .map(([name, value]) => paragraph(`${name}: ${value}`));
 }
-function customValues(
-  relations: SnapshotRelations,
-  cardId: string,
-  locale: Locale,
-): DocumentBlock[] {
-  return (relations.values.get(cardId) ?? []).map((value) => {
-    const field = relations.fields.get(value.fieldId);
-    if (!field) throw new Error('Missing custom field definition');
-    let content = Object.values(value.value ?? {}).join(', ');
-    if (field.type === CustomFieldType.Checkbox)
-      content =
-        value.value?.checked === 'true'
-          ? translations[locale].formatYes
-          : translations[locale].formatNo;
-    if (field.type === CustomFieldType.Date && value.value?.date)
-      content = displayDate(value.value.date, locale);
-    if (value.optionId)
-      content = field.options.find((option) => option.id === value.optionId)?.text ?? '';
-    return paragraph(`${field.name}: ${content}`);
-  });
-}
 function checklistBlocks(
   relations: SnapshotRelations,
   cardId: string,
@@ -104,7 +82,6 @@ function cardBlocks(
     { kind: BlockKind.Heading, text: card.name },
     paragraph(card.description),
     ...metadata(snapshot, card, locale),
-    ...customValues(relations, card.id, locale),
     ...checklistBlocks(relations, card.id, locale),
     ...orderedRecords(relations.comments.get(card.id) ?? []).map((comment) =>
       paragraph(

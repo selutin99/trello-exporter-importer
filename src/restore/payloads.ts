@@ -5,8 +5,6 @@ import { RestoreError, RestoreErrorCode, RestoreResource } from './codes';
 const createFields = new Map<RestoreResource, readonly string[]>([
   [RestoreResource.List, ['name', 'pos']],
   [RestoreResource.Label, ['name', 'color']],
-  [RestoreResource.Field, ['name', 'type', 'idModel', 'modelType', 'pos', 'options']],
-  [RestoreResource.Option, ['value', 'color', 'pos']],
   [
     RestoreResource.Card,
     ['idList', 'name', 'desc', 'pos', 'start', 'due', 'dueComplete', 'idLabels'],
@@ -20,7 +18,6 @@ const updateFields = new Map<RestoreResource, readonly string[]>([
   [RestoreResource.Board, ['desc']],
   [RestoreResource.List, ['name']],
   [RestoreResource.Label, ['name', 'color']],
-  [RestoreResource.Field, ['name']],
   [RestoreResource.Card, ['name', 'desc', 'idList', 'idLabels', 'start', 'due', 'dueComplete']],
   [RestoreResource.Checklist, ['name']],
   [RestoreResource.Item, ['name', 'state', 'due']],
@@ -49,8 +46,7 @@ export function assertCreatePayload(
   if (
     !Object.keys(body).length ||
     Object.keys(body).some((key) => !createFields.get(resource)?.includes(key)) ||
-    (resource === RestoreResource.Card && body.idList !== parent) ||
-    (resource === RestoreResource.Field && body.idModel !== parent)
+    (resource === RestoreResource.Card && body.idList !== parent)
   )
     throw new ScopeError();
 }

@@ -170,15 +170,6 @@ export async function xlsxExport(snapshot: Snapshot, locale: Locale): Promise<Bl
       snapshot.checklistItems,
       ['id', 'checklistId', 'name', 'order', 'checked', 'due', 'memberId'],
     ],
-    ['CustomFields', snapshot.customFields, ['id', 'name', 'type', 'order']],
-    [
-      'CustomFieldOptions',
-      snapshot.customFields.flatMap((field) =>
-        field.options.map((option) => ({ fieldId: field.id, ...option })),
-      ),
-      ['fieldId', 'id', 'text', 'color', 'order'],
-    ],
-    ['CustomFieldValues', snapshot.customFieldValues, ['cardId', 'fieldId', 'value', 'optionId']],
     [
       'Comments',
       snapshot.comments,

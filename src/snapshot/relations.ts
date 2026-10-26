@@ -8,14 +8,12 @@ export interface SnapshotRelations {
   items: Related<Snapshot['checklistItems'][number]>;
   comments: Related<Snapshot['comments'][number]>;
   attachments: Related<Snapshot['attachments'][number]>;
-  values: Related<Snapshot['customFieldValues'][number]>;
-  fields: ReadonlyMap<string, Snapshot['customFields'][number]>;
 }
 
 /**
  * Indexes snapshot relationships while preserving record content and source order
  * @param snapshot - Normalized content whose collections stay fixed during consumption
- * @returns Parent groups and field definitions for export and restoration
+ * @returns Parent groups for supported board content
  */
 export function snapshotRelations(snapshot: Snapshot): SnapshotRelations {
   return {
@@ -24,7 +22,5 @@ export function snapshotRelations(snapshot: Snapshot): SnapshotRelations {
     items: groupRecords(snapshot.checklistItems, (item) => item.checklistId),
     comments: groupRecords(snapshot.comments, (comment) => comment.cardId),
     attachments: groupRecords(snapshot.attachments, (attachment) => attachment.cardId),
-    values: groupRecords(snapshot.customFieldValues, (value) => value.cardId),
-    fields: new Map(snapshot.customFields.map((field) => [field.id, field])),
   };
 }

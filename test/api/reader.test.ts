@@ -41,11 +41,9 @@ test('reader blocks collection and unknown-card requests before making HTTP call
   await expect(reader.cards()).rejects.toThrow(ScopeError);
   await expect(reader.labels()).rejects.toThrow(ScopeError);
   await expect(reader.members()).rejects.toThrow(ScopeError);
-  await expect(reader.customFields()).rejects.toThrow(ScopeError);
   await expect(reader.attachments(id(99))).rejects.toThrow(ScopeError);
   await expect(reader.checklists(id(99))).rejects.toThrow(ScopeError);
   await expect(reader.comments(id(99))).rejects.toThrow(ScopeError);
-  await expect(reader.customValues(id(99))).rejects.toThrow(ScopeError);
   await expect(reader.file(id(3), sourceAttachment, 10)).rejects.toThrow(ScopeError);
   expect(calls).toHaveLength(0);
 });

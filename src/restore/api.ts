@@ -7,9 +7,8 @@ import { ApiError, ScopeError } from '../api/errors';
 import { ApiErrorCode } from '../shared/error-codes';
 import { captureBoard } from '../snapshot/capture';
 import type { Snapshot } from '../snapshot/types';
-import { RestoreError, RestoreErrorCode, RestoreResource } from './codes';
+import { RestoreResource } from './codes';
 import type { RestoreContext, RestoreTarget, RestoreWriter } from './types';
-import { canonicalJson } from '../shared/json';
 import { assertCreatePayload, assertUpdatePayload, assertExpectedValues } from './payloads';
 import { RestoreScope } from './scope';
 
@@ -124,46 +123,6 @@ export class RestoreApi implements RestoreWriter {
     await this.#transport.request(HttpMethod.Put, `/${resource}/${id}`, { body, ...options });
   }
   /**
-   * Sets a reviewed custom value after validating the card, field, and optional old value
-   * @param cardId - Current-board card
-   * @param fieldId - Current-board custom field
-   * @param value - Typed value or mapped dropdown choice
-   * @param options - Optional cancellation
-   * @param expected - Reviewed value, or null for an unset value
-   * @throws RestoreError on a stale field; propagates ownership and write failures
-   */
-  async value(
-    cardId: string,
-    fieldId: string,
-    value: Record<string, unknown>,
-    options: RequestOptions = {},
-    expected: unknown = null,
-  ): Promise<void> {
-    await this.verifyTarget(options);
-    await this.verifyEntity(RestoreResource.Card, cardId, options);
-    await this.verifyEntity(RestoreResource.Field, fieldId, options);
-    if (typeof value.idValue === 'string')
-      await this.verifyNested(RestoreResource.Option, fieldId, value.idValue, options);
-    const values = await this.#transport.request(
-      HttpMethod.Get,
-      `/cards/${cardId}/customFieldItems`,
-      options,
-    );
-    if (!Array.isArray(values)) throw new ScopeError();
-    const current: unknown = values.find(
-      (item: unknown) => isRecord(item) && item.idCustomField === fieldId,
-    );
-    let content: unknown = null;
-    if (isRecord(current))
-      content = current.idValue ? { idValue: current.idValue } : { value: current.value };
-    if (canonicalJson(content) !== canonicalJson(expected))
-      throw new RestoreError(RestoreErrorCode.PlanStale);
-    await this.#transport.request(HttpMethod.Put, `/cards/${cardId}/customField/${fieldId}/item`, {
-      body: value,
-      ...options,
-    });
-  }
-  /**
    * Updates a checked item through its verified current card and checklist
    * @param checklistId - Owning checklist
    * @param itemId - Current item
@@ -208,7 +167,7 @@ export class RestoreApi implements RestoreWriter {
     return this.#scope.verifyEntity(resource, id, options);
   }
   /**
-   * Verifies an item or dropdown option through its owning current-board parent
+   * Verifies an item through its owning current-board checklist
    * @param resource - Supported nested identity kind
    * @param parent - Mapped current-board parent
    * @param id - Nested target identity
@@ -239,15 +198,18 @@ export class RestoreApi implements RestoreWriter {
     options: RequestOptions,
   ): Promise<string> {
     const target = this.#scope.target;
-    if ([RestoreResource.Board, RestoreResource.Value].includes(resource)) throw new ScopeError();
-    if ([RestoreResource.List, RestoreResource.Label, RestoreResource.Field].includes(resource)) {
+    if (
+      [
+        RestoreResource.Board,
+        RestoreResource.Field,
+        RestoreResource.Option,
+        RestoreResource.Value,
+      ].includes(resource)
+    )
+      throw new ScopeError();
+    if ([RestoreResource.List, RestoreResource.Label].includes(resource)) {
       if (parent !== target.id) throw new ScopeError();
-      if (resource === RestoreResource.Field) return '/customFields';
       return `/boards/${target.id}/${resource}`;
-    }
-    if (resource === RestoreResource.Option) {
-      await this.verifyEntity(RestoreResource.Field, parent, options);
-      return `/customFields/${parent}/options`;
     }
     if (resource === RestoreResource.Card) {
       await this.verifyEntity(RestoreResource.List, parent, options);

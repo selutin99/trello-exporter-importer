@@ -14,7 +14,7 @@ export const exportRu = {
   exportStructure: 'Активные списки и карточки',
   exportChecklists: 'Чек-листы и отметки выполнения',
   exportComments: 'Комментарии',
-  exportMetadata: 'Метки, сроки и пользовательские поля',
+  exportMetadata: 'Метки и сроки',
   exportAttachmentLabel: 'Вложения',
   exportIncludedStatus: 'Сохраняются',
   exportExcludedStatus: 'Файлы вложений не сохраняются',

@@ -140,11 +140,9 @@ function resolutionSelect(
       [MergeChoice.Skip, text.restoreSkip],
     );
   } else {
-    const copy = [
-      RestoreResource.Attachment,
-      RestoreResource.Comment,
-      RestoreResource.Option,
-    ].includes(conflict.record.resource);
+    const copy = [RestoreResource.Attachment, RestoreResource.Comment].includes(
+      conflict.record.resource,
+    );
     choices.push(
       [MergeChoice.Current, text.restoreKeepCurrent],
       [MergeChoice.Snapshot, copy ? text.restoreUseCopy : text.restoreUseSnapshot],

@@ -118,7 +118,6 @@ export class RestoreScope {
         RestoreResource.Card,
         RestoreResource.List,
         RestoreResource.Label,
-        RestoreResource.Field,
         RestoreResource.Checklist,
       ].includes(resource)
     )
@@ -126,7 +125,7 @@ export class RestoreScope {
     const targetId = this.#requireTarget().id;
     const value = await this.#transport.request(HttpMethod.Get, `/${resource}/${id}`, options);
     if (!isRecord(value) || value.id !== id) throw new ScopeError();
-    const boardId = resource === RestoreResource.Field ? value.idModel : value.idBoard;
+    const boardId = value.idBoard;
     if (
       boardId !== targetId ||
       ([RestoreResource.Card, RestoreResource.List].includes(resource) && value.closed !== false)
@@ -143,7 +142,7 @@ export class RestoreScope {
     return value;
   }
   /**
-   * Verifies an item or dropdown option through its owning current-board parent
+   * Verifies an item through its owning current-board checklist
    * @param resource - Supported nested identity kind
    * @param parent - Mapped current-board parent
    * @param id - Nested target identity
@@ -158,10 +157,8 @@ export class RestoreScope {
     options: RequestOptions = {},
   ): Promise<Record<string, unknown>> {
     if (!isId(id)) throw new ScopeError();
-    const kind =
-      resource === RestoreResource.Item ? RestoreResource.Checklist : RestoreResource.Field;
-    if (resource !== RestoreResource.Item && resource !== RestoreResource.Option)
-      throw new ScopeError();
+    const kind = RestoreResource.Checklist;
+    if (resource !== RestoreResource.Item) throw new ScopeError();
     await this.verifyEntity(kind, parent, options);
     const value = await this.#transport.request(
       HttpMethod.Get,

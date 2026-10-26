@@ -1,20 +1,12 @@
 import { textChunks } from '../../shared/text';
-import { isRecord } from '../../api/validation';
 import { RestoreError, RestoreErrorCode, RestoreResource, RestoreWarning } from '../codes';
 import { attributedComment } from '../comments';
 import type { RestoreExecution } from '../types';
-import { MergeActionKind, MergeField } from './types';
+import { MergeActionKind } from './types';
 import type { MergeAction } from './types';
-import { createPayload, updatePayload, writeValue } from './writes';
-import { referencedKeys } from './values';
+import { createPayload, updatePayload } from './writes';
 
-const optional = new Set([
-  RestoreResource.Field,
-  RestoreResource.Option,
-  RestoreResource.Value,
-  RestoreResource.Comment,
-  RestoreResource.Attachment,
-]);
+const optional = new Set([RestoreResource.Comment, RestoreResource.Attachment]);
 
 /**
  * Executes selected content changes without a board-creation or deletion path
@@ -58,10 +50,7 @@ function parentsAvailable(action: MergeAction, execution: RestoreExecution): boo
       (!!source.url || (!!source.file && execution.imported.files.has(source.file.path)))
     );
   }
-  if (action.record.resource !== RestoreResource.Value) return true;
-  return referencedKeys(action.record.fields[MergeField.Value] ?? null).every(
-    (key) => !!bindings[key],
-  );
+  return true;
 }
 function omit(action: MergeAction, execution: RestoreExecution): void {
   const key = `${action.record.resource}/${action.key}`;
@@ -79,7 +68,6 @@ async function apply(action: MergeAction, execution: RestoreExecution): Promise<
   const parent = record.parent ? bindings[record.parent] : execution.target.id;
   if (!parent) throw new RestoreError(RestoreErrorCode.InvalidPlan);
   const request = { signal: options.signal };
-  if (record.resource === RestoreResource.Value) return customValue(action, execution);
   if (record.resource === RestoreResource.Attachment) return attachment(action, parent, execution);
   if (action.kind !== MergeActionKind.Update)
     return api.create(record.resource, parent, createPayload(record, parent, bindings), request);
@@ -88,27 +76,6 @@ async function apply(action: MergeAction, execution: RestoreExecution): Promise<
     await api.item(parent, action.targetId, body, expected, request);
   else await api.update(record.resource, action.targetId, body, expected, request);
   return action.targetId;
-}
-async function customValue(action: MergeAction, execution: RestoreExecution): Promise<string> {
-  const bindings = execution.journal.bindings;
-  const cardId = bindings[action.record.parent ?? ''];
-  const incoming = writeValue(action.record.fields[MergeField.Value] ?? null, bindings);
-  const before = action.before === null ? null : writeValue(action.before, {}, false);
-  if (
-    !cardId ||
-    !isRecord(incoming) ||
-    typeof incoming.field !== 'string' ||
-    !isRecord(incoming.payload)
-  )
-    throw new RestoreError(RestoreErrorCode.InvalidPlan);
-  await execution.api.value(
-    cardId,
-    incoming.field,
-    incoming.payload,
-    { signal: execution.options.signal },
-    isRecord(before) ? before.payload : null,
-  );
-  return `${cardId}-${incoming.field}`;
 }
 async function attachment(
   action: MergeAction,

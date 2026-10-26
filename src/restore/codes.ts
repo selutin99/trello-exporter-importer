@@ -19,6 +19,7 @@ export enum RestoreResource {
   Item = 'checkItems',
   Attachment = 'attachments',
   Comment = 'comments',
+  // Retained for legacy journal keys and explicit omissions; field writes are unsupported.
   Field = 'customFields',
   Option = 'options',
   Value = 'customFieldValues',
@@ -30,6 +31,7 @@ export enum RestoreWarning {
   AdvancedItems = 'RESTORE_ITEM_ASSIGNEES_NOT_ASSIGNED',
   MissingFiles = 'RESTORE_MISSING_FILES',
   CommentSummary = 'RESTORE_COMMENT_SUMMARIES',
+  CustomFields = 'RESTORE_CUSTOM_FIELDS_EXCLUDED',
   Unsupported = 'RESTORE_SECTION_UNAVAILABLE',
 }
 export enum RestoreErrorCode {

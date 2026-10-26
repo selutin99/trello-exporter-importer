@@ -4,7 +4,7 @@ import { createSyntheticCapture } from '../helpers/board-capture';
 import { Locale } from '../../src/i18n';
 import { IssueCode } from '../../src/snapshot/codes';
 
-test('reading formats retain dates, metadata, custom values, comments, files, empty lists, and warnings', () => {
+test('reading formats retain dates, metadata, comments, files, empty lists, and warnings', () => {
   const snapshot = createSyntheticCapture().snapshot;
   snapshot.comments[0]!.authorDisplayName = null;
   snapshot.checklistItems[0]!.due = '2026-11-01T00:00:00Z';

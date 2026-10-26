@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { createSyntheticCapture } from '../helpers/board-capture';
+import { createLegacyFieldCapture as createSyntheticCapture } from '../helpers/board-capture';
 import { parseSnapshot } from '../../src/import/schema';
 import { ImportError } from '../../src/import/codes';
 import type { Snapshot } from '../../src/snapshot/types';

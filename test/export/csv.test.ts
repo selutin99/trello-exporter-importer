@@ -16,6 +16,7 @@ test('CSV has one row per card, full quoted multiline text, JSON collections, an
   expect(rows).toHaveLength(7);
   expect(JSON.parse(String(rows[1]?.[10]))).toHaveLength(1);
   expect(rows[0]).not.toContain('archived');
+  expect(rows[0]).not.toContain('custom_fields');
 });
 test.each([
   '=HYPERLINK("https://example.com")',

@@ -68,8 +68,8 @@ export interface RestoreWriter {
   ): Promise<Record<string, unknown>>;
   /**
    * Verifies a nested item through its current-board parent
-   * @param resource - Item or dropdown option
-   * @param parent - Owning checklist or field
+   * @param resource - Checklist item
+   * @param parent - Owning checklist
    * @param id - Nested identity
    * @param options - Optional cancellation
    * @returns Verified nested fields
@@ -81,23 +81,6 @@ export interface RestoreWriter {
     id: string,
     options?: RequestOptions,
   ): Promise<Record<string, unknown>>;
-  /**
-   * Sets a custom value after checking the reviewed old value
-   * @param cardId - Current card
-   * @param fieldId - Current field
-   * @param value - Selected value or mapped dropdown option
-   * @param options - Optional cancellation
-   * @param expected - Reviewed value, defaulting to an unset value
-   * @returns Completion after a confirmed write
-   * @throws Ownership, stale-plan, API, cancellation, or unknown-write failures
-   */
-  value(
-    cardId: string,
-    fieldId: string,
-    value: Record<string, unknown>,
-    options?: RequestOptions,
-    expected?: unknown,
-  ): Promise<void>;
   /**
    * Applies selected fields after checking their reviewed values
    * @param resource - Mutable entity kind

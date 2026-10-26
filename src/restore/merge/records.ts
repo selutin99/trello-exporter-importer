@@ -46,20 +46,6 @@ export function mergeRecords(snapshot: Snapshot): MergeRecord[] {
     add(RestoreResource.List, list.id, list.name, board, {
       [MergeField.Name]: list.name,
     });
-  for (const field of orderedRecords(snapshot.customFields))
-    add(RestoreResource.Field, field.id, field.name, board, {
-      [MergeField.Name]: field.name,
-      [MergeField.Type]: field.type,
-    });
-  for (const field of orderedRecords(snapshot.customFields))
-    for (const option of orderedRecords(field.options))
-      add(
-        RestoreResource.Option,
-        option.id,
-        option.text,
-        recordKey(RestoreResource.Field, field.id),
-        { [MergeField.Text]: option.text, [MergeField.Color]: option.color },
-      );
   for (const card of orderedRecords(snapshot.cards))
     add(RestoreResource.Card, card.id, card.name, recordKey(RestoreResource.List, card.listId), {
       [MergeField.Name]: card.name,
@@ -116,42 +102,5 @@ export function mergeRecords(snapshot: Snapshot): MergeRecord[] {
         },
       },
     );
-  appendValues(snapshot, add);
   return records;
-}
-function appendValues(
-  snapshot: Snapshot,
-  add: (
-    resource: RestoreResource,
-    id: string,
-    name: string,
-    parent: string | null,
-    fields: MergeRecord['fields'],
-  ) => void,
-): void {
-  for (const value of snapshot.customFieldValues) {
-    if (!value.value && !value.optionId) continue;
-    const field = snapshot.customFields.find((field) => field.id === value.fieldId);
-    const payload: MergeValue = value.optionId
-      ? { idValue: reference(recordKey(RestoreResource.Option, value.optionId)) }
-      : {
-          value: Object.fromEntries(
-            Object.entries(value.value ?? {}).filter(
-              (entry): entry is [string, string] => entry[1] !== undefined,
-            ),
-          ),
-        };
-    add(
-      RestoreResource.Value,
-      `${value.cardId}-${value.fieldId}`,
-      field?.name ?? value.fieldId,
-      recordKey(RestoreResource.Card, value.cardId),
-      {
-        [MergeField.Value]: {
-          field: reference(recordKey(RestoreResource.Field, value.fieldId)),
-          payload,
-        },
-      },
-    );
-  }
 }

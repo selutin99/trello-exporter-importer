@@ -38,11 +38,11 @@ test('target metadata cannot be read or used before selection, or mutated throug
 test('nested identities require their verified current-board parent and an exact response ID', async () => {
   const { scope, records, calls } = setup();
   await scope.selectTarget(await scope.context(sourceBoard.id));
-  expect(await scope.verifyNested(RestoreResource.Option, id(40), id(41))).toMatchObject({
-    id: id(41),
+  expect(await scope.verifyNested(RestoreResource.Item, id(200), id(1000))).toMatchObject({
+    id: id(1000),
   });
-  records.set(`/customFields/${id(40)}/options/${id(41)}`, { id: id(999) });
-  await expect(scope.verifyNested(RestoreResource.Option, id(40), id(41))).rejects.toThrow(
+  records.set(`/checklists/${id(200)}/checkItems/${id(1000)}`, { id: id(999) });
+  await expect(scope.verifyNested(RestoreResource.Item, id(200), id(1000))).rejects.toThrow(
     ScopeError,
   );
   const card = records.get(`/cards/${id(100)}`);
