@@ -7,17 +7,14 @@ export const exportRu = {
   exportTab: 'Экспорт',
   exportRestore: 'Импорт',
   exportFormat: 'Выберите формат',
-  exportZipNote: 'Содержимое доски и оригиналы файлов вложений',
   exportRecommended: 'Рекомендуем',
-  exportJsonNote: 'Содержимое доски и ссылки на вложения, без самих файлов',
+  exportJsonNote: 'Содержимое доски и ссылки на вложения',
   exportIncluded: 'Что сохранится',
   exportStructure: 'Активные списки и карточки',
   exportChecklists: 'Чек-листы и отметки выполнения',
   exportComments: 'Комментарии',
   exportMetadata: 'Метки и сроки',
   exportAttachmentLabel: 'Вложения',
-  exportIncludedStatus: 'Сохраняются',
-  exportExcludedStatus: 'Файлы вложений не сохраняются',
   exportPrivacy:
     'Обработка происходит на Вашем устройстве. Плагин читает содержимое доски, сохраняя данные без изменений',
   exportConsistency:
@@ -28,8 +25,6 @@ export const exportRu = {
   exportBoard: 'Собираем сведения о доске…',
   exportCards: 'Обрабатываем карточки…',
   exportContent: 'Читаем содержимое карточек…',
-  exportFiles: 'Скачиваем файлы вложений…',
-  exportPackage: 'Собираем архив…',
   exportReady: 'Файл готов',
   exportPartial: 'Файл готов с предупреждениями',
   exportPartialNote:
@@ -40,7 +35,6 @@ export const exportRu = {
   exportLists: 'Списки',
   exportCardCount: 'Карточки',
   exportItemCount: 'Пункты чек-листов',
-  exportFileCount: 'Файлы сохранены',
   exportReport: 'Скачать отчет',
   exportCancel: 'Отменить экспорт',
   exportCancelled: 'Экспорт отменен. Файл для скачивания не создан',
@@ -54,24 +48,14 @@ export const exportRu = {
   exportStandalone:
     'Откройте trello-exporter-importer с вашей доски Trello, чтобы выгрузить ее содержимое',
   exportBestEffort: 'Снимок за интервал',
-  exportFileLimit:
-    'Лимит файлов в ZIP: 250 МиБ. Недоступные и слишком большие файлы попадут в предупреждения',
   exportFileUnavailable: 'Не удалось сохранить файл вложения',
   exportSectionUnavailable: 'Не удалось прочитать часть содержимого',
   exportUnsafeLink: 'Небезопасный URL вложения исключен',
   exportBoardChanged: 'Доска изменилась во время экспорта',
   exportDetails: 'Технические сведения',
   exportSupport: 'Помощь и обратная связь',
-  exportFilesConnect: 'Подключить доступ к файлам',
-  exportFilesReconnect: 'Сбросить подключение файлов',
-  exportFilesUnconfigured:
-    'Доступ к файлам для этого улучшения не настроен. Выберите другой формат или обратитесь к его автору',
-  exportFilesRequired:
-    'Для оригиналов вложений в ZIP подключите доступ к файлам. Trello дает доступ на чтение ко всему аккаунту на один день; улучшение скачивает файлы только с открытой доски',
-  exportFilesAuthorizing: 'Завершите подключение файлов в окне Trello',
-  exportFilesConnected:
-    'Доступ к файлам подключен. Если срок истек, сбросьте подключение и подключитесь заново',
-  exportFilesResetting: 'Сбрасываем подключение файлов…',
-  exportFilesAuthFailed:
-    'Доступ к файлам не подключен. Повторите попытку или выберите другой формат',
+  exportAttachmentLinks: 'Названия вложений и ссылки на исходные файлы',
+  exportLinksNotice:
+    'Файлы остаются в Trello и открываются по исходным ссылкам с учетом вашего доступа к исходной доске',
+  exportAttachmentCount: 'Вложения',
 } satisfies { [Key in keyof typeof exportEn]: string };

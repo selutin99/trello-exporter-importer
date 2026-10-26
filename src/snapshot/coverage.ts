@@ -3,8 +3,8 @@ import { CaptureOutcome, CoverageStatus, SnapshotSection } from './codes';
 import type { Snapshot } from './types';
 
 /**
- * Updates section counts and completeness after capture or ZIP packaging
- * @param snapshot - Capture to finalize without changing its content or existing file coverage
+ * Updates section counts and completeness after content capture
+ * @param snapshot - Capture to finalize while explicitly excluding attachment bytes
  */
 export function finishCapture(snapshot: Snapshot): void {
   const incomplete = new Set(snapshot.issues.map((item) => item.entityType));
@@ -29,7 +29,7 @@ export function finishCapture(snapshot: Snapshot): void {
       : CoverageStatus.Complete,
     count: 1,
   };
-  snapshot.coverage[SnapshotSection.AttachmentFiles] ??= {
+  snapshot.coverage[SnapshotSection.AttachmentFiles] = {
     status: CoverageStatus.Excluded,
     count: 0,
   };

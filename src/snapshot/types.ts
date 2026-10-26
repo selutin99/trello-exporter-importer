@@ -19,11 +19,6 @@ export interface SnapshotIssue {
   entityId: string | null;
   message: string;
 }
-export interface SnapshotFile {
-  path: string;
-  size: number;
-  sha256: string;
-}
 export interface SnapshotAttachment {
   id: string;
   cardId: string;
@@ -32,7 +27,7 @@ export interface SnapshotAttachment {
   url: string | null;
   mimeType: string | null;
   size: number | null;
-  file: SnapshotFile | null;
+  file: null;
 }
 export interface Snapshot {
   format: 'trello-exporter.snapshot';

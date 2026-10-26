@@ -21,7 +21,7 @@ test('a session rejects concurrent work and late results after cancellation', as
   );
   const pending = session.load(reader, id(1));
   expect(session.busy).toBe(true);
-  session.selectFormat(ExportFormat.Zip);
+  session.selectFormat(ExportFormat.Markdown);
   await session.load(reader, id(1));
   expect(session.model.format).toBe(ExportFormat.Json);
   session.cancel();
@@ -85,13 +85,11 @@ test('a board that becomes empty during capture produces no download', async () 
   const session = new ExportSession(() => {});
   await session.load(readerFixture().reader, id(1));
   const { reader } = readerFixture({ [`/1/boards/${id(1)}/cards`]: [] });
-  const download = vi.spyOn(reader, 'file');
   await session.prepare(reader, id(1));
   expect(session.model.state).toBe(ExportState.Ready);
   expect(session.model.board).toMatchObject({ lists: 1, cards: 0 });
   expect(session.model.result).toBeNull();
   expect(session.model.progress).toBeNull();
-  expect(download).not.toHaveBeenCalled();
 });
 
 test('format selection preserves an unavailable board outcome until the board can be loaded', async () => {

@@ -1,4 +1,4 @@
-import { AttachmentKind, CaptureOutcome } from '../snapshot/codes';
+import { CaptureOutcome } from '../snapshot/codes';
 import type { ImportedBoard } from '../import/read';
 import { RestoreResource, RestoreWarning } from './codes';
 import type { Snapshot } from '../snapshot/types';
@@ -24,7 +24,7 @@ export interface RestorePlan {
   lists: number;
   cards: number;
   items: number;
-  files: number;
+  attachments: number;
   warnings: RestoreWarning[];
 }
 
@@ -43,18 +43,12 @@ export function restorationPlan(imported: ImportedBoard): RestorePlan {
   if (snapshot.cards.some((card) => card.cover)) warnings.push(RestoreWarning.Covers);
   if (snapshot.checklistItems.some((item) => item.memberId))
     warnings.push(RestoreWarning.AdvancedItems);
-  if (
-    snapshot.attachments.some(
-      (attachment) => !attachment.file && attachment.kind === AttachmentKind.Upload,
-    )
-  )
-    warnings.push(RestoreWarning.MissingFiles);
   if (snapshot.comments.length) warnings.push(RestoreWarning.CommentSummary);
   return {
     lists: snapshot.lists.length,
     cards: snapshot.cards.length,
     items: snapshot.checklistItems.length,
-    files: imported.files.size,
+    attachments: snapshot.attachments.length,
     warnings,
   };
 }

@@ -50,7 +50,7 @@ export interface RestoreWriter {
   create(
     resource: RestoreResource,
     parentId: string,
-    body: Record<string, unknown> | FormData,
+    body: Record<string, unknown>,
     options?: RequestOptions,
   ): Promise<string>;
   /**

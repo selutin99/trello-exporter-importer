@@ -32,7 +32,7 @@ export class RestoreEngine {
 
   /**
    * Revalidates and applies a resolved merge; boards are never created and current-only content is preserved
-   * @param imported - Validated project JSON/ZIP content
+   * @param imported - Validated project JSON content
    * @param context - Current SDK-bound board, independent of imported source IDs
    * @param options - Reviewed merge plan, language, cancellation, and continuation choice
    * @returns Token-free operation result, including partial and uncertain outcomes

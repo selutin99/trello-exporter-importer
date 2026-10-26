@@ -1,6 +1,5 @@
 export enum ExportFormat {
   Json = 'json',
-  Zip = 'zip',
   Markdown = 'md',
   Pdf = 'pdf',
   Xlsx = 'xlsx',
@@ -57,6 +56,4 @@ export enum ExportStage {
   Board = 'exportBoard',
   Cards = 'exportCards',
   Content = 'exportContent',
-  Files = 'exportFiles',
-  Package = 'exportPackage',
 }

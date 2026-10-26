@@ -50,14 +50,14 @@ export const restoreEn = {
   mergeFieldContent: 'Content',
   restoreEmpty: 'Empty',
   restoreTitle: 'Import your board',
-  restoreIntro: 'Import a JSON or ZIP file into the board you currently have open',
-  restoreFile: 'Export file · JSON or ZIP',
+  restoreIntro: 'Import a JSON file into the board you currently have open',
+  restoreFile: 'Export file · JSON',
   restoreChoose: 'Choose a file to review the import plan',
   restoreLoading: 'Validating the file and destination…',
   restoreReady: 'Review the merge plan and resolve conflicts',
   restoreRunning: 'Importing board content…',
   restoreInvalid:
-    'The file is invalid, unsupported, exceeds limits, or does not contain complete board data. Choose a project JSON/ZIP export, not a diagnostic report',
+    'The file is invalid, unsupported, exceeds limits, or does not contain complete board data. Choose a project JSON export, not a diagnostic report',
   restoreFailed: 'Import stopped. Review the report before retrying',
   restoreUnavailable:
     'Open this Power-Up on the destination board in Trello, then connect to compare its current content',
@@ -81,10 +81,9 @@ export const restoreEn = {
   restoreComplete: 'Import complete',
   restorePartial: 'Import complete with limitations',
   restorePrivacy:
-    'Processing happens on your device. Reviewed changes, including available attachment files, are sent to the current Trello board',
+    'Processing happens on your device. Reviewed content changes and attachment links are sent to the current Trello board',
   restoreConsistency: 'Import takes time. Avoid editing the board while importing',
-  restoreFileLimit:
-    'Import limits: 300 MiB for the input file and expanded content, 16 MiB per JSON entry, and 10,000 ZIP entries',
+  restoreFileLimit: 'Import limit: 16 MiB for the JSON input',
   restoreUnknown:
     'A write result is unknown. Do not retry it automatically; inspect the target board and report',
   restoreIdentities:
@@ -95,8 +94,7 @@ export const restoreEn = {
     'Card members remain source metadata and are not assigned automatically',
   [RestoreWarning.Covers]: 'Card cover settings remain source metadata',
   [RestoreWarning.AdvancedItems]: 'Checklist assignees are not assigned automatically',
-  [RestoreWarning.MissingFiles]:
-    'Some attachment bytes are missing; available source links are recreated as links',
+  [RestoreWarning.MissingFiles]: 'Attachment source links are recreated as links',
   [RestoreWarning.CommentSummary]:
     'Original comments become attributed text summaries posted by the restoring user',
   [RestoreWarning.CustomFields]: 'Custom fields from older exports are not imported',

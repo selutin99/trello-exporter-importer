@@ -70,13 +70,7 @@
           <legend data-i18n="exportFormat"></legend>
           <div class="format-grid">
             <label class="format-option"
-              ><input type="radio" name="format" value="zip" checked /><span class="format-top"
-                ><span class="format-icon">ZIP</span
-                ><span class="recommendation" data-i18n="exportRecommended"></span></span
-              ><span class="subtle" data-i18n="exportZipNote"></span
-            ></label>
-            <label class="format-option"
-              ><input type="radio" name="format" value="json" /><span class="format-top"
+              ><input type="radio" name="format" value="json" checked /><span class="format-top"
                 ><span class="format-icon">JSON</span></span
               ><span class="subtle" data-i18n="exportJsonNote"></span
             ></label>
@@ -106,17 +100,10 @@
             <li data-i18n="exportChecklists"></li>
             <li data-i18n="exportComments"></li>
             <li data-i18n="exportMetadata"></li>
-            <li id="attachment-coverage">
-              <span id="attachment-mark" aria-hidden="true">✓</span>
-              <span data-i18n="exportAttachmentLabel"></span>
-              <span id="attachment-status" class="sr-only"></span>
-            </li>
+            <li data-i18n="exportAttachmentLinks"></li>
           </ul>
         </section>
-        <section id="file-access" class="included" hidden>
-          <p id="file-access-status" role="status" aria-live="polite"></p>
-          <button id="file-connect" class="text-button" data-i18n="exportFilesConnect"></button>
-        </section>
+        <p class="subtle fine-print" data-i18n="exportLinksNotice"></p>
         <div id="operation" hidden>
           <p id="progress-label" role="status" aria-live="polite"></p>
           <progress id="progress" max="1"></progress
@@ -145,7 +132,6 @@
           <p class="subtle fine-print" data-i18n="exportConsistency"></p>
           <details class="technical">
             <summary data-i18n="exportDetails"></summary>
-            <p data-i18n="exportFileLimit"></p>
             <p>
               <a
                 href="%CONNECTED_APPS_URL%"
@@ -164,10 +150,7 @@
         </div>
         <label class="restore-file"
           ><span data-i18n="restoreFile"></span
-          ><input
-            id="restore-file"
-            type="file"
-            accept=".json,.zip,application/json,application/zip"
+          ><input id="restore-file" type="file" accept=".json,application/json"
         /></label>
         <p id="restore-status" role="status" aria-live="polite"></p>
         <section id="restore-preview" class="notice" hidden>

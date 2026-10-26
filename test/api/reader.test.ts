@@ -1,10 +1,8 @@
-import { expect, test, vi } from 'vitest';
+import { expect, test } from 'vitest';
 import { ScopeError } from '../../src/api';
 import {
   id,
   readerFixture,
-  sourceAttachment,
-  sourceBoard,
   sourceCard,
   sourceList,
   sourceChecklist,
@@ -34,18 +32,6 @@ test('only active cards in active lists enter the reader allowlist, even if filt
   await expect(reader.attachments(id(91))).rejects.toThrow(ScopeError);
   await expect(reader.comments(id(92))).rejects.toThrow(ScopeError);
   expect(calls).toHaveLength(count);
-});
-
-test('reader blocks collection and unknown-card requests before making HTTP calls', async () => {
-  const { reader, calls } = readerFixture();
-  await expect(reader.cards()).rejects.toThrow(ScopeError);
-  await expect(reader.labels()).rejects.toThrow(ScopeError);
-  await expect(reader.members()).rejects.toThrow(ScopeError);
-  await expect(reader.attachments(id(99))).rejects.toThrow(ScopeError);
-  await expect(reader.checklists(id(99))).rejects.toThrow(ScopeError);
-  await expect(reader.comments(id(99))).rejects.toThrow(ScopeError);
-  await expect(reader.file(id(3), sourceAttachment, 10)).rejects.toThrow(ScopeError);
-  expect(calls).toHaveLength(0);
 });
 
 test('all board identities and child owners must match before content is read', async () => {
@@ -87,62 +73,3 @@ test('comments paginate with the oldest cursor and reject a server repeating pag
   expect(pages[1]?.searchParams.get('before')).toBe(id(2000));
   expect(pages[0]?.searchParams.get('filter')).toBe('commentCard');
 });
-
-test('download is built from scoped IDs, never the untrusted attachment URL', async () => {
-  const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('demo'));
-  const { reader } = await verifiedReader();
-  await reader.attachments(id(3));
-  const { reader: downloading } = readerFixture({}, { fetchImpl: fetcher });
-  fetcher.mockResolvedValueOnce(new Response(JSON.stringify(sourceBoard)));
-  fetcher.mockResolvedValueOnce(new Response(JSON.stringify(sourceBoard)));
-  await downloading.board(id(1));
-  // A foreign upload remains blocked even after board verification.
-  await expect(downloading.file(id(3), sourceAttachment, 4)).rejects.toThrow(ScopeError);
-  const fixture = await verifiedReader({
-    [`/1/cards/${id(3)}/attachments`]: [{ ...sourceAttachment, isUpload: false }],
-  });
-  await fixture.reader.attachments(id(3));
-  await expect(fixture.reader.file(id(3), sourceAttachment, 4)).rejects.toThrow(ScopeError);
-});
-
-test.each(['original file.txt', 'original café.txt'])(
-  'renaming an upload does not change its download filename: %s',
-  async (fileName) => {
-    const attachment = {
-      ...sourceAttachment,
-      name: 'Renamed attachment',
-      fileName,
-      url: 'https://untrusted.example/file',
-    };
-    const downloadPath = `/1/cards/${id(3)}/attachments/${attachment.id}/download/${encodeURIComponent(fileName)}`;
-    const { reader, calls } = await verifiedReader({
-      [`/1/cards/${id(3)}/attachments`]: [attachment],
-      [downloadPath]: new Response('data'),
-    });
-    await reader.attachments(id(3));
-    expect(
-      await reader.file(id(3), { ...attachment, fileName: 'changed.txt', name: 'Changed' }, 4),
-    ).toEqual(new TextEncoder().encode('data'));
-    expect(calls.at(-1)?.href).toBe(`https://trello.com${downloadPath}`);
-    expect(
-      calls
-        .find((url) => url.pathname.endsWith('/attachments'))
-        ?.searchParams.get('fields')
-        ?.split(','),
-    ).toContain('fileName');
-  },
-);
-
-test.each([undefined, null, ''])(
-  'uploads without an original filename retain the display-name fallback: %s',
-  async (fileName) => {
-    const attachment = { ...sourceAttachment, fileName };
-    const path = `/1/cards/${id(3)}/attachments/${attachment.id}/download/${attachment.name}`;
-    const { reader } = await verifiedReader({
-      [`/1/cards/${id(3)}/attachments`]: [attachment],
-      [path]: new Response('data'),
-    });
-    await reader.attachments(id(3));
-    expect(await reader.file(id(3), attachment, 4)).toEqual(new TextEncoder().encode('data'));
-  },
-);

@@ -34,7 +34,6 @@ export class BoardReader {
   readonly #transport: Transport;
   readonly #cards = new Set<string>();
   readonly #activeLists = new Set<string>();
-  readonly #attachments = new Map<string, { cardId: string; fileName: string }>();
 
   /**
    * Creates a board-scoped reader without write access
@@ -102,7 +101,6 @@ export class BoardReader {
     }
     const active = cards.filter((card) => !card.closed && this.#activeLists.has(card.idList));
     this.#cards.clear();
-    this.#attachments.clear();
     active.forEach((card) => this.#cards.add(card.id));
     return active;
   }
@@ -155,41 +153,7 @@ export class BoardReader {
         options,
       ),
     );
-    attachments
-      .filter((attachment) => attachment.isUpload)
-      .forEach((attachment) =>
-        this.#attachments.set(attachment.id, {
-          cardId,
-          // The display name can change without renaming the stored upload.
-          fileName: attachment.fileName || attachment.name,
-        }),
-      );
     return attachments;
-  }
-
-  /**
-   * Downloads only an uploaded file discovered on a verified source card
-   * @param cardId - Previously discovered source card
-   * @param attachment - Previously read attachment metadata
-   * @param maximumBytes - Remaining archive budget
-   * @param options - Optional cancellation signal
-   * @returns Original attachment bytes
-   * @throws ScopeError for unknown uploads; ApiError for download failures
-   */
-  async file(
-    cardId: string,
-    attachment: SourceAttachment,
-    maximumBytes: number,
-    options: RequestOptions = {},
-  ): Promise<Uint8Array<ArrayBuffer>> {
-    const upload = this.#attachments.get(attachment.id);
-    if (!upload || upload.cardId !== cardId || !attachment.isUpload) throw new ScopeError();
-    await this.#verifyCard(cardId, options);
-    return this.#transport.download(
-      `/cards/${cardId}/attachments/${attachment.id}/download/${encodeURIComponent(upload.fileName)}`,
-      maximumBytes,
-      options,
-    );
   }
 
   /**

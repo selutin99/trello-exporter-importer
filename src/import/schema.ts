@@ -22,15 +22,6 @@ const url = z
   .refine((value) => safeLink(value) !== null)
   .nullable();
 const collection = <T extends z.ZodType>(schema: T) => z.array(schema).max(100_000);
-export const fileSchema = z.object({
-  path: z.string().regex(/^(snapshot\.json|attachments\/[a-zA-Z0-9_-]{1,128}\/content)$/),
-  size: z
-    .number()
-    .int()
-    .min(0)
-    .max(300 * 1024 * 1024),
-  sha256: z.string().regex(/^[a-f0-9]{64}$/),
-});
 
 const snapshotSchema = z.object({
   format: z.literal('trello-exporter.snapshot'),
@@ -132,7 +123,7 @@ const snapshotSchema = z.object({
       url,
       mimeType: z.string().max(200).nullable(),
       size: z.number().int().nonnegative().nullable(),
-      file: fileSchema.nullable(),
+      file: z.null(),
     }),
   ),
   issues: collection(

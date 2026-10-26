@@ -35,12 +35,12 @@ test.each([
   },
 );
 
-test('finalization retains ZIP file coverage and reports an unverifiable board', () => {
+test('finalization excludes file coverage and reports an unverifiable board', () => {
   const { snapshot } = createSyntheticCapture();
   snapshot.coverage.attachmentFiles = { status: CoverageStatus.Partial, count: 1 };
   snapshot.issues.push(issue(IssueCode.BoardChanged, SnapshotSection.Board, snapshot.board.id));
   finishCapture(snapshot);
-  expect(snapshot.coverage.attachmentFiles).toEqual({ status: CoverageStatus.Partial, count: 1 });
+  expect(snapshot.coverage.attachmentFiles).toEqual({ status: CoverageStatus.Excluded, count: 0 });
   expect(snapshot.coverage.board?.status).toBe(CoverageStatus.Partial);
   expect(snapshot.capture.outcome).toBe(CaptureOutcome.Partial);
 });

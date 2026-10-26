@@ -1,5 +1,5 @@
 /**
- * Computes the digest of original, uncompressed file bytes
+ * Computes the digest of a local JSON input
  * @param bytes - Bytes to hash
  * @returns Lowercase SHA-256 hexadecimal digest
  */
@@ -10,7 +10,7 @@ export async function sha256(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
 
 /**
  * Encodes portable JSON as UTF-8 without embedding file bytes
- * @param value - Serializable snapshot or manifest
+ * @param value - Serializable snapshot
  * @returns UTF-8 JSON bytes
  */
 export function jsonBytes(value: unknown): Uint8Array<ArrayBuffer> {

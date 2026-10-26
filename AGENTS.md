@@ -1,8 +1,9 @@
 # Repository instructions
 
 - Never create or use Git worktrees. Work in the main project directory.
-- The project implements JSON/ZIP export and current-board merging, alongside
+- The project implements JSON export and current-board merging, alongside
   Markdown/PDF/XLSX/CSV export and historical diagnostics
+  Attachment files remain in Trello; export and import preserve source links only
   Keep implementation status distinct from pending live client/workload validation
 - Keep the README workflow, snapshot contract, and executable schemas consistent
   when changing behavior or release scope. Do not recreate a docs/ directory.

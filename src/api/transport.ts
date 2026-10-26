@@ -2,15 +2,13 @@ import { HttpMethod } from './types';
 import { ApiErrorCode } from '../shared/error-codes';
 import { serviceUrls } from '../config/services';
 import { waitForOperation } from '../core/operation';
-import { readByteChunks } from '../core/stream';
 import { ApiError } from './errors';
 import { pause, retryDelay } from './retry';
 import type { ClientOptions, RequestOptions } from './types';
 
 interface TransportOptions extends RequestOptions {
   query?: Record<string, string>;
-  body?: Record<string, unknown> | FormData;
-  binary?: boolean;
+  body?: Record<string, unknown>;
 }
 
 /** Internal transport. Callers use the board-scoped facade, never arbitrary endpoints */
@@ -38,46 +36,8 @@ export class Transport {
     return readJson(response, method, options.signal);
   }
 
-  /**
-   * Downloads attachment bytes through a fixed API path with a strict byte budget
-   * @param path - Scoped attachment download endpoint
-   * @param maximumBytes - Remaining attachment budget
-   * @param options - Optional cancellation signal
-   * @returns The downloaded file bytes
-   * @throws ApiError on unreadable or oversized files; the signal reason on cancellation
-   */
-  async download(
-    path: string,
-    maximumBytes: number,
-    options: RequestOptions = {},
-  ): Promise<Uint8Array<ArrayBuffer>> {
-    const response = await this.#response(HttpMethod.Get, path, { ...options, binary: true });
-    if (!response.body) throw new ApiError(ApiErrorCode.InvalidResponse);
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    try {
-      for await (const chunk of readByteChunks(response.body, options.signal)) {
-        size += chunk.byteLength;
-        if (size > maximumBytes) throw new ApiError(ApiErrorCode.InvalidResponse);
-        chunks.push(chunk);
-      }
-      const bytes = new Uint8Array(size);
-      let offset = 0;
-      for (const chunk of chunks) {
-        bytes.set(chunk, offset);
-        offset += chunk.length;
-      }
-      return bytes;
-    } catch (error) {
-      options.signal?.throwIfAborted();
-      if (error instanceof ApiError) throw error;
-      throw new ApiError(ApiErrorCode.NetworkError);
-    }
-  }
-
   async #response(method: HttpMethod, path: string, options: TransportOptions): Promise<Response> {
-    const origin = options.binary ? serviceUrls.trelloAttachments : serviceUrls.trelloApi;
-    const url = new URL(`${origin}${path}`);
+    const url = new URL(`${serviceUrls.trelloApi}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {}))
       url.searchParams.set(key, value);
     const attempts = method === HttpMethod.Get ? 3 : 1;
@@ -95,14 +55,11 @@ export class Transport {
     throw new ApiError(ApiErrorCode.RequestFailed);
   }
 
-  async #token(binary: boolean, signal?: AbortSignal): Promise<string> {
+  async #token(signal?: AbortSignal): Promise<string> {
     signal?.throwIfAborted();
     let token: string | null | undefined;
     try {
-      const pending =
-        binary && this.options.attachmentAuth
-          ? this.options.attachmentAuth.getToken()
-          : this.options.getAccessToken();
+      const pending = this.options.getAccessToken();
       token = signal ? await waitForOperation(pending, signal) : await pending;
     } catch {
       signal?.throwIfAborted();
@@ -113,17 +70,8 @@ export class Transport {
     return token;
   }
 
-  async #send(
-    method: HttpMethod,
-    url: URL,
-    { body, signal, binary }: TransportOptions,
-  ): Promise<Response> {
-    const token = await this.#token(!!binary, signal);
-    const fileAuth = binary ? this.options.attachmentAuth : undefined;
-    const authorization = fileAuth
-      ? `OAuth oauth_consumer_key="${encodeURIComponent(fileAuth.appKey)}", oauth_token="${encodeURIComponent(token)}"`
-      : `Bearer ${token}`;
-    const form = body instanceof FormData;
+  async #send(method: HttpMethod, url: URL, { body, signal }: TransportOptions): Promise<Response> {
+    const token = await this.#token(signal);
     signal?.throwIfAborted();
     try {
       // Web APIs require their original receiver, not this Transport instance.
@@ -131,15 +79,14 @@ export class Transport {
       return await fetchRequest(url.href, {
         method,
         credentials: 'omit',
-        // Fetch strips Authorization on cross-origin redirects to Trello's signed file host.
-        redirect: binary ? 'follow' : 'error',
+        redirect: 'error',
         cache: 'no-store',
         headers: {
-          Accept: binary ? '*/*' : 'application/json',
-          Authorization: authorization,
-          ...(body && !form ? { 'Content-Type': 'application/json' } : {}),
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
-        ...(body ? { body: form ? body : JSON.stringify(body) } : {}),
+        ...(body ? { body: JSON.stringify(body) } : {}),
         ...(signal ? { signal } : {}),
       });
     } catch {

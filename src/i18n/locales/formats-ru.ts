@@ -16,6 +16,5 @@ export const formatsRu = {
   formatLabels: 'Метки',
   formatMembers: 'Участники',
   formatNoLink: 'Исходная ссылка недоступна',
-  formatNotice:
-    'Только активное содержимое · файлы вложений доступны в ZIP · восстановление из JSON/ZIP',
+  formatNotice: 'Активное содержимое и ссылки на вложения · импорт из JSON',
 } satisfies { [Key in keyof typeof formatsEn]: string };

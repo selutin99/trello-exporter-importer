@@ -73,7 +73,7 @@ export class RestoreApi implements RestoreWriter {
    * Creates one missing object after current-board and parent verification
    * @param resource - Supported nested collection; boards cannot be created
    * @param parentId - Mapped current-board parent identity
-   * @param body - Allowlisted engine-produced fields or attachment form data
+   * @param body - Allowlisted engine-produced JSON fields
    * @param options - Optional cancellation
    * @returns The newly created identity
    * @throws ScopeError for unsafe payloads or foreign parents; ApiError for failed or unknown writes
@@ -81,14 +81,13 @@ export class RestoreApi implements RestoreWriter {
   async create(
     resource: RestoreResource,
     parentId: string,
-    body: Record<string, unknown> | FormData,
+    body: Record<string, unknown>,
     options: RequestOptions = {},
   ): Promise<string> {
     await this.verifyTarget(options);
     const path = await this.#createPath(resource, parentId, options);
     assertCreatePayload(resource, parentId, body);
-    if (resource === RestoreResource.Card && !(body instanceof FormData))
-      await this.#verifyLabels(body, options);
+    if (resource === RestoreResource.Card) await this.#verifyLabels(body, options);
     const result = await this.#transport.request(HttpMethod.Post, path, { body, ...options });
     if (!isRecord(result) || !isId(result.id)) throw new ApiError(ApiErrorCode.WriteResultUnknown);
     return result.id;

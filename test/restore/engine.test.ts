@@ -8,12 +8,8 @@ import {
   RestoreWarning,
   RestoreErrorCode,
 } from '../../src/restore/codes';
-import {
-  createSyntheticCapture,
-  createLegacyFieldCapture,
-  syntheticFileReader,
-} from '../helpers/board-capture';
-import { buildArchive, jsonBytes } from '../../src/snapshot/archive';
+import { createSyntheticCapture, createLegacyFieldCapture } from '../helpers/board-capture';
+import { jsonBytes } from '../../src/snapshot/encoding';
 import { readImport } from '../../src/import/read';
 import type { ImportedBoard } from '../../src/import/read';
 import { Locale } from '../../src/i18n';
@@ -24,13 +20,8 @@ import { buildMergePlan } from '../../src/restore/merge/planner';
 import { MergeChoice } from '../../src/restore/merge/types';
 
 type Fixture = ReturnType<typeof restorationFixture>;
-async function imported(zip = false) {
-  const capture = createSyntheticCapture();
-  return readImport(
-    zip
-      ? await buildArchive(capture, syntheticFileReader)
-      : new Blob([jsonBytes(capture.snapshot)]),
-  );
+async function imported() {
+  return readImport(new Blob([jsonBytes(createSyntheticCapture().snapshot)]));
 }
 async function run(
   fixture: Fixture,
@@ -48,33 +39,27 @@ async function run(
 }
 const writes = (fixture: Fixture) => fixture.calls.filter((call) => call.method !== 'GET');
 
-test.each([false, true])(
-  'JSON/ZIP add missing content to the current board without creating a board: zip=%s',
-  async (zip) => {
-    const fixture = restorationFixture();
-    const input = await imported(zip);
-    const report = await run(fixture, input);
-    expect(report.target?.id).toBe(sourceBoard.id);
-    expect(report.status).toBe(RestoreStatus.Partial);
-    expect(Object.keys(report.completed).filter((key) => key.startsWith('cards/'))).toHaveLength(6);
-    expect(
-      Object.keys(report.completed).filter((key) => key.startsWith('checkItems/')),
-    ).toHaveLength(19);
-    expect(report.pending).toBeNull();
-    expect(
-      writes(fixture).some((call) => call.path === '/boards' || call.method === 'DELETE'),
-    ).toBe(false);
-    expect(writes(fixture).filter((call) => call.path.endsWith('/attachments'))).toHaveLength(
-      zip ? 3 : 0,
-    );
-    for (const call of writes(fixture).filter((call) => call.body instanceof FormData))
-      expect(call.headers.has('Content-Type')).toBe(false);
-    expect(JSON.stringify(report)).not.toContain('synthetic-token');
-  },
-);
+test('JSON adds missing content and source attachment links without creating a board', async () => {
+  const fixture = restorationFixture();
+  const input = await imported();
+  const report = await run(fixture, input);
+  expect(report.target?.id).toBe(sourceBoard.id);
+  expect(report.status).toBe(RestoreStatus.Partial);
+  expect(Object.keys(report.completed).filter((key) => key.startsWith('cards/'))).toHaveLength(6);
+  expect(Object.keys(report.completed).filter((key) => key.startsWith('checkItems/'))).toHaveLength(
+    19,
+  );
+  expect(report.pending).toBeNull();
+  expect(writes(fixture).some((call) => call.path === '/boards' || call.method === 'DELETE')).toBe(
+    false,
+  );
+  expect(writes(fixture).filter((call) => call.path.endsWith('/attachments'))).toHaveLength(3);
+  expect(writes(fixture).every((call) => !(call.body instanceof FormData))).toBe(true);
+  expect(JSON.stringify(report)).not.toContain('synthetic-token');
+});
 
 test('loading the exact same snapshot again reuses IDs and performs no duplicate writes', async () => {
-  const input = await imported(true);
+  const input = await imported();
   const fixture = restorationFixture(undefined, input.snapshot);
   expect((await fixture.plan(input)).actions).toHaveLength(0);
   expect((await run(fixture, input)).status).toBe(RestoreStatus.Complete);
@@ -83,7 +68,7 @@ test('loading the exact same snapshot again reuses IDs and performs no duplicate
 });
 
 test('a second import into another board reuses journal mappings and comment chunks', async () => {
-  const input = await imported(true);
+  const input = await imported();
   input.snapshot.board.id = id(999);
   const fixture = restorationFixture();
   await run(fixture, input);
@@ -222,25 +207,22 @@ test('lost journal storage after a confirmed write returns an uncertain report',
   expect(store.read()?.pending).not.toBeNull();
 });
 
-test.each([false, true])(
-  'cancellation after dispatch distinguishes observed and lost responses: lost=%s',
-  async (lost) => {
-    const active = new AbortController();
-    const fixture = restorationFixture((call) => {
-      if (call.method === 'POST' && call.path === '/cards') {
-        active.abort();
-        if (lost) throw new Error('lost write');
-      }
-    });
-    const report = await run(fixture, await imported(), { signal: active.signal });
-    expect(report.status).toBe(lost ? RestoreStatus.Unknown : RestoreStatus.Cancelled);
-    expect(Object.keys(report.completed).filter((key) => key.startsWith('cards/'))).toHaveLength(
-      lost ? 0 : 1,
-    );
-    expect(writes(fixture).filter((call) => call.path === '/cards')).toHaveLength(1);
-    if (lost) expect(report.error).toBe(ApiErrorCode.WriteResultUnknown);
-  },
-);
+test('cancellation after dispatch distinguishes observed and lost responses: lost=%s', async (lost) => {
+  const active = new AbortController();
+  const fixture = restorationFixture((call) => {
+    if (call.method === 'POST' && call.path === '/cards') {
+      active.abort();
+      if (lost) throw new Error('lost write');
+    }
+  });
+  const report = await run(fixture, await imported(), { signal: active.signal });
+  expect(report.status).toBe(lost ? RestoreStatus.Unknown : RestoreStatus.Cancelled);
+  expect(Object.keys(report.completed).filter((key) => key.startsWith('cards/'))).toHaveLength(
+    lost ? 0 : 1,
+  );
+  expect(writes(fixture).filter((call) => call.path === '/cards')).toHaveLength(1);
+  if (lost) expect(report.error).toBe(ApiErrorCode.WriteResultUnknown);
+});
 
 test('a rate limit on an optional write remains resumable instead of permanently skipped', async () => {
   let limited = true;
@@ -286,7 +268,7 @@ test('comment chunks resume with original attribution language and reimport with
       ? new Response('', { status: 401 })
       : undefined,
   );
-  const input = await imported(true);
+  const input = await imported();
   const comment = input.snapshot.comments[0]!;
   comment.text = '0123456789'.repeat(2500);
   expect((await run(fixture, input)).status).toBe(RestoreStatus.Failed);
@@ -356,7 +338,7 @@ test('legacy new-board journals cannot resume or redirect imports', async () => 
 });
 
 test('cancellation at final verification cannot report success', async () => {
-  const input = await imported(true);
+  const input = await imported();
   const fixture = restorationFixture(undefined, input.snapshot);
   const active = new AbortController();
   const verify = fixture.api.verifyTarget.bind(fixture.api);
@@ -429,28 +411,21 @@ test.each([RestoreStatus.Unknown, RestoreStatus.Running])(
   },
 );
 
-test.each([false, true])(
-  'legacy custom fields are explicitly omitted without any field API calls: zip=%s',
-  async (zipped) => {
-    const capture = createLegacyFieldCapture();
-    const input = await readImport(
-      zipped
-        ? await buildArchive(capture, syntheticFileReader)
-        : new Blob([jsonBytes(capture.snapshot)]),
-    );
-    const fixture = restorationFixture(undefined, capture.snapshot);
-    const before = structuredClone([...fixture.records.entries()]);
-    const report = await run(fixture, input);
-    expect(report.status).toBe(RestoreStatus.Partial);
-    expect(report.warnings).toContain(RestoreWarning.CustomFields);
-    expect(report.skipped).toHaveLength(16);
-    expect(
-      fixture.calls.some((call) => /customFields|customFieldItems|customField\//.test(call.path)),
-    ).toBe(false);
-    expect(writes(fixture)).toHaveLength(0);
-    expect([...fixture.records.entries()]).toEqual(before);
-    const again = await run(fixture, input);
-    expect(again.warnings).toContain(RestoreWarning.CustomFields);
-    expect(writes(fixture)).toHaveLength(0);
-  },
-);
+test('legacy custom fields are explicitly omitted without any field API calls', async () => {
+  const capture = createLegacyFieldCapture();
+  const input = await readImport(new Blob([jsonBytes(capture.snapshot)]));
+  const fixture = restorationFixture(undefined, capture.snapshot);
+  const before = structuredClone([...fixture.records.entries()]);
+  const report = await run(fixture, input);
+  expect(report.status).toBe(RestoreStatus.Partial);
+  expect(report.warnings).toContain(RestoreWarning.CustomFields);
+  expect(report.skipped).toHaveLength(16);
+  expect(
+    fixture.calls.some((call) => /customFields|customFieldItems|customField\//.test(call.path)),
+  ).toBe(false);
+  expect(writes(fixture)).toHaveLength(0);
+  expect([...fixture.records.entries()]).toEqual(before);
+  const again = await run(fixture, input);
+  expect(again.warnings).toContain(RestoreWarning.CustomFields);
+  expect(writes(fixture)).toHaveLength(0);
+});

@@ -1,7 +1,6 @@
 import { expect, test } from 'vitest';
-import { unzipSync, strFromU8 } from 'fflate';
 import { captureBoard } from '../../src/snapshot/capture';
-import { buildArchive, jsonBytes } from '../../src/snapshot/archive';
+import { jsonBytes } from '../../src/snapshot/encoding';
 import type { Snapshot } from '../../src/snapshot/types';
 import { ApiError, ScopeError } from '../../src/api';
 import { ApiErrorCode } from '../../src/shared/error-codes';
@@ -16,7 +15,7 @@ import {
   sourceList,
 } from '../helpers/snapshot';
 
-test('JSON and ZIP exclude archived objects and never request their nested content', async () => {
+test('JSON excludes archived objects and never request their nested content', async () => {
   const { reader, calls } = readerFixture({
     [`/1/boards/${id(1)}/lists`]: [sourceList, { ...sourceList, id: id(90), closed: true }],
     [`/1/boards/${id(1)}/cards`]: [
@@ -26,18 +25,8 @@ test('JSON and ZIP exclude archived objects and never request their nested conte
     ],
   });
   const capture = await captureBoard(reader, id(1));
-  const json = JSON.parse(strFromU8(jsonBytes(capture.snapshot))) as Snapshot;
-  const downloadedCards: string[] = [];
-  const blob = await buildArchive(capture, {
-    file: (cardId) => {
-      downloadedCards.push(cardId);
-      return Promise.resolve(new TextEncoder().encode('demo'));
-    },
-  });
-  const zip = JSON.parse(
-    strFromU8(unzipSync(new Uint8Array(await blob.arrayBuffer()))['snapshot.json']!),
-  ) as Snapshot;
-  for (const snapshot of [json, zip]) {
+  const json = JSON.parse(new TextDecoder().decode(jsonBytes(capture.snapshot))) as Snapshot;
+  for (const snapshot of [json]) {
     expect(snapshot.lists.map((list) => list.id)).toEqual([sourceList.id]);
     expect(snapshot.cards.map((card) => card.id)).toEqual([sourceCard.id]);
     expect(snapshot.attachments.map((attachment) => attachment.cardId)).toEqual([sourceCard.id]);
@@ -47,7 +36,7 @@ test('JSON and ZIP exclude archived objects and never request their nested conte
     expect(snapshot.coverage.customFields).toEqual({ status: 'excluded', count: 0 });
     expect(snapshot.coverage.customFieldValues).toEqual({ status: 'excluded', count: 0 });
   }
-  expect(downloadedCards).toEqual([sourceCard.id]);
+  expect(calls.some((url) => url.pathname.includes('/download/'))).toBe(false);
   expect(
     calls.some(
       (url) =>
@@ -60,7 +49,7 @@ test('JSON and ZIP exclude archived objects and never request their nested conte
 test('capture preserves active content and excludes custom fields without requesting them', async () => {
   const { reader, calls } = readerFixture();
   const stages: string[] = [];
-  const { snapshot, uploads } = await captureBoard(reader, id(1), {
+  const { snapshot } = await captureBoard(reader, id(1), {
     onProgress: (progress) => stages.push(progress.stage),
   });
   expect(snapshot.capture.outcome).toBe('complete');
@@ -77,7 +66,6 @@ test('capture preserves active content and excludes custom fields without reques
   expect(snapshot.checklistItems.map((item) => item.name)).toEqual(['Next', 'Done ✓']);
   expect(snapshot.checklistItems[1]?.memberId).toBe(id(6));
   expect(snapshot.coverage.attachmentFiles).toEqual({ status: 'excluded', count: 0 });
-  expect(uploads.size).toBe(1);
   expect(JSON.stringify(snapshot)).not.toMatch(/synthetic-token|never-export|must-not-export/);
   expect(calls.every((url) => !url.searchParams.has('token'))).toBe(true);
   expect(stages).toContain('exportContent');

@@ -15,7 +15,6 @@ function preview() {
     imported: {
       snapshot: createSyntheticCapture().snapshot,
       checksum: 'a'.repeat(64),
-      files: new Map<string, Uint8Array<ArrayBuffer>>(),
     },
     current: null,
     context: null,

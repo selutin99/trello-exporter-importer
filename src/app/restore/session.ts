@@ -55,7 +55,7 @@ export class RestoreSession {
   }
   /**
    * Validates a local file and attempts a read-only comparison with the current board
-   * @param file - Selected project JSON or ZIP
+   * @param file - Selected project JSON
    * @returns Accepted local content, or null after invalid input or cancellation
    */
   async load(file: Blob): Promise<ImportedBoard | null> {

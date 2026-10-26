@@ -24,9 +24,13 @@ test('foreign parents, archived cards, and body overrides never receive writes',
   await api.selectTarget(await api.context(sourceBoard.id));
   const foreign = id(888);
   records.set(`/cards/${foreign}`, { id: foreign, idBoard: id(889), closed: false });
-  await expect(api.create(RestoreResource.Attachment, foreign, new FormData())).rejects.toThrow(
-    ScopeError,
-  );
+  await expect(
+    api.create(
+      RestoreResource.Attachment,
+      foreign,
+      new FormData() as unknown as Record<string, unknown>,
+    ),
+  ).rejects.toThrow(ScopeError);
   records.get(`/cards/${foreign}`)!.idBoard = targetId;
   records.get(`/cards/${foreign}`)!.closed = true;
   await expect(api.create(RestoreResource.Comment, foreign, { text: 'Blocked' })).rejects.toThrow(
@@ -44,9 +48,13 @@ test('foreign parents, archived cards, and body overrides never receive writes',
   await expect(api.create(RestoreResource.List, targetId, { idBoard: foreign })).rejects.toThrow(
     ScopeError,
   );
-  await expect(api.create(RestoreResource.List, targetId, new FormData())).rejects.toThrow(
-    ScopeError,
-  );
+  await expect(
+    api.create(
+      RestoreResource.List,
+      targetId,
+      new FormData() as unknown as Record<string, unknown>,
+    ),
+  ).rejects.toThrow(ScopeError);
   expect(calls.some((call) => call.method !== 'GET')).toBe(false);
 });
 

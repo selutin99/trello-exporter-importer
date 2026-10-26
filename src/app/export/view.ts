@@ -1,9 +1,8 @@
 import { localizePage, translations } from '../../i18n';
 import type { Locale } from '../../i18n';
-import { ExportFormat, IssueCode } from '../../snapshot/codes';
+import { IssueCode } from '../../snapshot/codes';
 import type { ExportModel, PreparedExport } from './types';
 import { ExportState } from './types';
-import { AttachmentAccessState } from '../../trello/attachments';
 
 /** Text-only DOM rendering for the export workflow */
 export class ExportView {
@@ -32,15 +31,8 @@ export class ExportView {
    * @param model - Export session state
    * @param connected - Whether an embedded Trello frame is available
    * @param busy - Whether an operation is running
-   * @param files - SDK-managed attachment access state
    */
-  render(
-    locale: Locale,
-    model: Readonly<ExportModel>,
-    connected: boolean,
-    busy: boolean,
-    files = AttachmentAccessState.Ready,
-  ): void {
+  render(locale: Locale, model: Readonly<ExportModel>, connected: boolean, busy: boolean): void {
     localizePage(locale, this.document);
     const text = translations[locale];
     this.element('language', HTMLSelectElement).value = locale;
@@ -58,23 +50,8 @@ export class ExportView {
     this.element('formats', HTMLFieldSetElement).disabled = busy;
     for (const input of this.document.querySelectorAll<HTMLInputElement>('input[name="format"]'))
       input.checked = input.value === String(model.format);
-    const includesFiles = model.format === ExportFormat.Zip;
-    this.element('file-access', HTMLElement).hidden = !includesFiles || !connected || !model.board;
-    this.element('file-access-status', HTMLElement).textContent = text[files];
-    const fileConnect = this.element('file-connect', HTMLButtonElement);
-    fileConnect.disabled = busy || files === AttachmentAccessState.Unavailable;
-    fileConnect.textContent =
-      text[files === AttachmentAccessState.Ready ? 'exportFilesReconnect' : 'exportFilesConnect'];
-    this.element('attachment-coverage', HTMLElement).classList.toggle('excluded', !includesFiles);
-    this.element('attachment-mark', HTMLElement).textContent = includesFiles ? '✓' : '×';
-    this.element('attachment-status', HTMLElement).textContent =
-      text[includesFiles ? 'exportIncludedStatus' : 'exportExcludedStatus'];
     const action = this.element('export', HTMLButtonElement);
-    action.disabled =
-      !model.board ||
-      model.board.cards === 0 ||
-      busy ||
-      (includesFiles && files !== AttachmentAccessState.Ready);
+    action.disabled = !model.board || model.board.cards === 0 || busy;
     action.textContent = model.result ? text.exportAnother : text.exportAction;
     const emptyMessage = model.board?.cards === 0 && !busy ? text.exportEmpty : '';
     this.element('status', HTMLElement).textContent = [
@@ -109,7 +86,7 @@ export class ExportView {
       [text.exportLists, snapshot.lists.length],
       [text.exportCardCount, snapshot.cards.length],
       [text.exportItemCount, snapshot.checklistItems.length],
-      [text.exportFileCount, snapshot.coverage.attachmentFiles?.count ?? 0],
+      [text.exportAttachmentCount, snapshot.attachments.length],
     ] as const) {
       const row = this.document.createElement('div');
       const dt = this.document.createElement('dt');

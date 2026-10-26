@@ -8,7 +8,7 @@ vi.mock('../../../src/app/download', () => downloads);
 
 beforeEach(() => {
   vi.resetModules();
-  loadPage('export', 'clientId=public-client&appKey=00000000000000000000000000000000');
+  loadPage('export');
 });
 afterEach(() => {
   window.dispatchEvent(new Event('pagehide'));
@@ -34,56 +34,6 @@ test('standalone links cannot activate sample content or initialize the SDK', as
   expect(sdk.iframe).not.toHaveBeenCalled();
   expect(fetcher).not.toHaveBeenCalled();
 });
-
-test.each([
-  '#token=synthetic-callback-token',
-  '#%7B%22context%22%3A%7B%7D%7D#token=synthetic-callback-token',
-  '#%7B%22context%22%3A%7B%7D%7D&token=synthetic-callback-token',
-])(
-  'a file-consent popup initializes only the SDK callback without reading board data: %s',
-  async (fragment) => {
-    const { sdk } = installSdk();
-    const fetcher = vi.fn<typeof fetch>();
-    vi.stubGlobal('fetch', fetcher);
-    vi.stubGlobal('opener', {});
-    window.history.replaceState(null, '', `${window.location.href}${fragment}`);
-    await start();
-    expect(sdk.iframe).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
-        appKey: '00000000000000000000000000000000',
-        appName: 'trello-exporter-importer',
-      }),
-    );
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(document.body.textContent).not.toContain('synthetic-callback-token');
-    expect(localStorage.getItem('trello_token')).toBeNull();
-  },
-);
-
-test.each(['missing-key', 'missing-sdk', 'sdk-error', 'ordinary-link'])(
-  'file callback fails closed without exposing its fragment: %s',
-  async (condition) => {
-    if (condition === 'missing-key') loadPage('export', 'clientId=public-client');
-    const { sdk } = installSdk();
-    vi.stubGlobal('opener', {});
-    if (condition !== 'ordinary-link')
-      window.history.replaceState(
-        null,
-        '',
-        `${window.location.href}#token=synthetic-callback-token`,
-      );
-    if (condition === 'missing-sdk') vi.stubGlobal('TrelloPowerUp', undefined);
-    if (condition === 'sdk-error')
-      sdk.iframe.mockImplementation(() => {
-        throw new Error('private-sdk-detail');
-      });
-    await start();
-    expect(button('export').disabled).toBe(true);
-    expect(document.body.textContent).not.toContain('synthetic-callback-token');
-    expect(document.body.textContent).not.toContain('private-sdk-detail');
-    if (condition !== 'sdk-error') expect(sdk.iframe).not.toHaveBeenCalled();
-  },
-);
 const change = (selector: string, value: string) => {
   const input = document.querySelector<HTMLInputElement | HTMLSelectElement>(selector)!;
   input.value = value;
@@ -96,14 +46,13 @@ function live(responses = fixtureResponses) {
   vi.stubGlobal('parent', {});
   const fetcher = vi.fn<typeof fetch>().mockImplementation((input) => {
     const url = new URL(input instanceof Request ? input.url : input.toString());
-    if (url.pathname.includes('/download/')) return Promise.resolve(new Response('demo'));
     return Promise.resolve(new Response(JSON.stringify(responses[url.pathname])));
   });
   vi.stubGlobal('fetch', fetcher);
   return { ...sdk, fetcher };
 }
 
-test('an embedded session downloads JSON and ZIP and preserves language preferences', async () => {
+test('an embedded session downloads JSON and preserves language preferences', async () => {
   const { fetcher } = live();
   await start();
   await vi.waitFor(() => expect(button('export').disabled).toBe(false));
@@ -114,10 +63,6 @@ test('an embedded session downloads JSON and ZIP and preserves language preferen
   button('report').click();
   expect(downloads.downloadBlob.mock.calls.at(-1)?.[1]).toMatch(/\.json$/);
   expect(downloads.downloadJson).toHaveBeenCalled();
-  change('input[value="zip"]', 'zip');
-  button('export').click();
-  await vi.waitFor(() => expect(button('save').textContent).toContain('ZIP'));
-  button('save').click();
   expect(downloads.downloadBlob.mock.calls.at(-1)?.[0]).toBeInstanceOf(Blob);
   change('#language', 'en');
   expect(document.documentElement.lang).toBe('en');
@@ -126,7 +71,7 @@ test('an embedded session downloads JSON and ZIP and preserves language preferen
   expect(fetcher.mock.calls.every((call) => (call[1]?.method ?? 'GET') === 'GET')).toBe(true);
 });
 
-test('embedded workflow reads only the selected board, packages files, reconnects and refreshes', async () => {
+test('embedded workflow reads only the selected board, preserves attachment links, reconnects and refreshes', async () => {
   const { frame, client, fetcher } = live();
   await start();
   await vi.waitFor(() => expect(button('export').disabled).toBe(false));
@@ -135,7 +80,7 @@ test('embedded workflow reads only the selected board, packages files, reconnect
   await vi.waitFor(() => expect(document.getElementById('result')?.hidden).toBe(false));
   expect(document.getElementById('warning-list')?.children).toHaveLength(0);
   button('save').click();
-  expect(downloads.downloadBlob.mock.calls.at(-1)?.[1]).toMatch(/\.zip$/);
+  expect(downloads.downloadBlob.mock.calls.at(-1)?.[1]).toMatch(/\.json$/);
   button('refresh').click();
   await vi.waitFor(() => expect(button('export').disabled).toBe(false));
   button('connect').click();
@@ -221,37 +166,26 @@ test('an unavailable SDK frame does not expose API controls', async () => {
   expect(button('connect').disabled).toBe(true);
 });
 
-test('ZIP waits for explicit file consent, while JSON remains usable after denial', async () => {
-  const { attachmentClient, fetcher } = live();
-  attachmentClient.getToken.mockResolvedValue(null);
+test('JSON export uses only board OAuth even when an old connector URL contains a file API key', async () => {
+  loadPage('export', 'clientId=public-client&appKey=00000000000000000000000000000000');
+  const { sdk, fetcher } = live();
   await start();
-  await vi.waitFor(() =>
-    expect(document.getElementById('board-name')?.textContent).toBe(sourceBoard.name),
-  );
-  expect(button('export').disabled).toBe(true);
-  expect(attachmentClient.authorize).not.toHaveBeenCalled();
-  attachmentClient.authorize.mockRejectedValueOnce(new Error('private-file-consent'));
-  button('file-connect').click();
-  await vi.waitFor(() =>
-    expect(document.getElementById('file-access-status')?.textContent).toContain('не подключен'),
-  );
-  expect(document.body.textContent).not.toContain('private-file-consent');
-  change('input[value="json"]', 'json');
-  expect(button('export').disabled).toBe(false);
-  expect(document.getElementById('file-access')?.hidden).toBe(true);
-  change('input[value="zip"]', 'zip');
-  attachmentClient.getToken.mockResolvedValue('synthetic-file-token');
-  button('file-connect').click();
   await vi.waitFor(() => expect(button('export').disabled).toBe(false));
+  expect(sdk.iframe).toHaveBeenCalledWith({
+    clientId: 'public-client',
+    redirectUri:
+      'http://localhost:3000/trello-exporter-importer/authorize.html?clientId=public-client',
+  });
+  expect(document.querySelectorAll('input[name="format"]')).toHaveLength(5);
+  expect(document.querySelector('input[value="zip"]')).toBeNull();
+  expect(document.getElementById('file-connect')).toBeNull();
   button('export').click();
   await vi.waitFor(() => expect(document.getElementById('result')?.hidden).toBe(false));
-  const files = fetcher.mock.calls.filter(([url]) =>
-    (url instanceof Request ? url.url : url.toString()).includes('/download/'),
-  );
-  expect(files.length).toBeGreaterThan(0);
-  expect(
-    files.every(([, init]) =>
-      String(new Headers(init?.headers).get('Authorization')).startsWith('OAuth '),
-    ),
-  ).toBe(true);
+  for (const [input, init] of fetcher.mock.calls) {
+    const url = new URL(input instanceof Request ? input.url : input.toString());
+    expect(url.origin).toBe('https://api.trello.com');
+    expect(url.pathname).not.toContain('/download/');
+    expect(url.searchParams.has('key') || url.searchParams.has('token')).toBe(false);
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer synthetic-token');
+  }
 });

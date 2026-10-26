@@ -45,10 +45,7 @@ function parentsAvailable(action: MergeAction, execution: RestoreExecution): boo
     const source = execution.imported.snapshot.attachments.find(
       (item) => item.id === action.record.sourceId,
     );
-    return (
-      !!source &&
-      (!!source.url || (!!source.file && execution.imported.files.has(source.file.path)))
-    );
+    return !!source?.url;
   }
   return true;
 }
@@ -86,20 +83,9 @@ async function attachment(
     (item) => item.id === action.record.sourceId,
   );
   if (!source) throw new RestoreError(RestoreErrorCode.InvalidPlan);
-  const bytes = source.file ? execution.imported.files.get(source.file.path) : null;
-  let body: Record<string, unknown> | FormData;
-  if (bytes) {
-    body = new FormData();
-    body.set(
-      'file',
-      new Blob([bytes], { type: source.mimeType ?? 'application/octet-stream' }),
-      source.name,
-    );
-    body.set('name', source.name);
-  } else {
-    if (!source.url) throw new RestoreError(RestoreErrorCode.InvalidPlan);
-    body = { name: source.name, url: source.url };
-  }
+
+  if (!source.url) throw new RestoreError(RestoreErrorCode.InvalidPlan);
+  const body = { name: source.name, url: source.url };
   return execution.api.create(RestoreResource.Attachment, parent, body, {
     signal: execution.options.signal,
   });

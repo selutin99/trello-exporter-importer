@@ -103,7 +103,7 @@ export class RestoreView {
       const plan = restorationPlan(model.imported);
       this.element('restore-source', HTMLElement).textContent = model.imported.snapshot.board.name;
       this.element('restore-counts', HTMLElement).textContent =
-        `${text.exportLists}: ${plan.lists} · ${text.exportCardCount}: ${plan.cards} · ${text.exportItemCount}: ${plan.items} · ${text.exportFileCount}: ${plan.files}`;
+        `${text.exportLists}: ${plan.lists} · ${text.exportCardCount}: ${plan.cards} · ${text.exportItemCount}: ${plan.items} · ${text.exportAttachmentCount}: ${plan.attachments}`;
       const notes = [text.restoreIdentities, ...plan.warnings.map((warning) => text[warning])];
       for (const message of notes) {
         const item = this.document.createElement('li');

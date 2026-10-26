@@ -1,7 +1,6 @@
 import { ApiError, ScopeError } from '../api/errors';
 import { ApiErrorCode } from '../shared/error-codes';
 import type { BoardReader } from '../api/reader';
-import type { SourceAttachment } from '../api/schemas';
 import { serviceUrls } from '../config/services';
 import { product } from '../config/product';
 import { CaptureOutcome, CoverageStatus, ExportStage, IssueCode, SnapshotSection } from './codes';
@@ -19,7 +18,6 @@ import type { CaptureOptions, Snapshot } from './types';
 
 export interface CapturedBoard {
   snapshot: Snapshot;
-  uploads: Map<string, SourceAttachment>;
 }
 
 /**
@@ -27,7 +25,7 @@ export interface CapturedBoard {
  * @param reader - Board-scoped API reader
  * @param contextBoardId - Live board identity from Trello
  * @param options - Cancellation and progress observer
- * @returns A portable JSON snapshot and private upload metadata for ZIP packaging
+ * @returns A portable JSON snapshot containing attachment metadata and source links
  * @throws ApiError for unreadable core content; ScopeError for foreign identities; the signal reason on cancellation
  */
 export async function captureBoard(
@@ -89,7 +87,6 @@ export async function captureBoard(
     attachments: [],
     issues: [],
   };
-  const uploads = new Map<string, SourceAttachment>();
   const optional = optionalSection(snapshot, signal);
   for (const [index, card] of cards.entries()) {
     signal?.throwIfAborted();
@@ -108,7 +105,6 @@ export async function captureBoard(
           snapshot.issues.push(
             issue(IssueCode.UnsafeLink, SnapshotSection.Attachments, attachment.id),
           );
-        if (attachment.isUpload) uploads.set(attachment.id, attachment);
       }
     });
   }
@@ -123,7 +119,7 @@ export async function captureBoard(
   });
   finishCapture(snapshot);
   assertReferences(snapshot);
-  return { snapshot, uploads };
+  return { snapshot };
 }
 
 function optionalSection(snapshot: Snapshot, signal?: AbortSignal) {

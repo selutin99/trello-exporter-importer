@@ -10,28 +10,16 @@ import { createSyntheticCapture } from '../../helpers/board-capture';
 
 beforeEach(() => loadPage('export'));
 
-test('attachment file coverage follows JSON and ZIP selection in both languages', () => {
+test('every format preserves attachment links and the selected privacy language', () => {
   const view = new ExportView(document);
   const session = new ExportSession(() => {});
   for (const locale of Object.values(Locale)) {
-    for (const format of [ExportFormat.Json, ExportFormat.Zip, ExportFormat.Json]) {
+    for (const format of Object.values(ExportFormat)) {
       session.selectFormat(format);
       view.render(locale, session.model, false, false);
-      const included = format === ExportFormat.Zip;
-      expect(view.element('attachment-mark', HTMLElement).textContent).toBe(included ? '✓' : '×');
-      expect(view.element('attachment-mark', HTMLElement).getAttribute('aria-hidden')).toBe('true');
-      expect(view.element('attachment-coverage', HTMLElement).classList.contains('excluded')).toBe(
-        !included,
-      );
-      expect(view.element('attachment-status', HTMLElement).textContent).toBe(
-        locale === Locale.Russian
-          ? included
-            ? 'Сохраняются'
-            : 'Файлы вложений не сохраняются'
-          : included
-            ? 'Included'
-            : 'Attachment files not included',
-      );
+      expect(document.querySelector('input[value="zip"]')).toBeNull();
+      expect(document.getElementById('file-connect')).toBeNull();
+      expect(document.body.textContent).toContain(translations[locale].exportAttachmentLinks);
       expect(view.element('privacy-link', HTMLAnchorElement).getAttribute('href')).toBe(
         `./privacy.html?lang=${locale}`,
       );
@@ -47,7 +35,7 @@ test('a missing control fails clearly and progress is accessible', () => {
     Locale.Russian,
     {
       ...session.model,
-      progress: { stage: ExportStage.Files, current: 1, total: 3 },
+      progress: { stage: ExportStage.Content, current: 1, total: 3 },
     },
     true,
     true,
@@ -97,8 +85,8 @@ test('all warning types are localized, and untrusted entity IDs remain plain tex
       result: {
         blob: new Blob(['synthetic']),
         snapshot: capture.snapshot,
-        filename: 'snapshot.zip',
-        format: ExportFormat.Zip,
+        filename: 'snapshot.json',
+        format: ExportFormat.Json,
       },
     },
     false,

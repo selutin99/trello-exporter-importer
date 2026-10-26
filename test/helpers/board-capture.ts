@@ -6,7 +6,6 @@ import {
   CoverageStatus,
   CustomFieldType,
 } from '../../src/snapshot/codes';
-import type { BoardReader } from '../../src/api/reader';
 import { syntheticCards, syntheticFiles, syntheticLabels, syntheticLists } from './board-data';
 import { product } from '../../src/config/product';
 
@@ -14,7 +13,7 @@ const id = (number: number) => number.toString(16).padStart(24, '0');
 
 /**
  * Builds a synthetic capture fixture without network or account access
- * @returns A fresh capture fixture, safe to mutate during ZIP packaging
+ * @returns A fresh capture fixture containing only attachment metadata and source links
  */
 export function createSyntheticCapture(): CapturedBoard {
   const now = new Date().toISOString();
@@ -62,7 +61,6 @@ export function createSyntheticCapture(): CapturedBoard {
     attachments: [],
     issues: [],
   };
-  const uploads: CapturedBoard['uploads'] = new Map();
   const positions = new Map<number, number>();
   for (const [index, card] of syntheticCards.entries()) {
     const cardId = id(100 + index);
@@ -106,22 +104,12 @@ export function createSyntheticCapture(): CapturedBoard {
     const file = files[card.file];
     if (file) {
       const attachmentId = id(400 + card.file);
-      const source = {
-        id: attachmentId,
-        name: file.name,
-        isUpload: true,
-        url: '',
-        mimeType: file.mimeType,
-        bytes: file.bytes.length,
-        pos: 1,
-      };
-      uploads.set(attachmentId, source);
       snapshot.attachments.push({
         id: attachmentId,
         cardId,
         name: file.name,
         kind: AttachmentKind.Upload,
-        url: null,
+        url: `https://trello.com/1/cards/${cardId}/attachments/${attachmentId}/download/${encodeURIComponent(file.name)}`,
         mimeType: file.mimeType,
         size: file.bytes.length,
         file: null,
@@ -129,7 +117,7 @@ export function createSyntheticCapture(): CapturedBoard {
     }
   }
   finishCapture(snapshot);
-  return { snapshot, uploads };
+  return { snapshot };
 }
 
 /**
@@ -158,12 +146,3 @@ export function createLegacyFieldCapture(): CapturedBoard {
   finishCapture(capture.snapshot);
   return capture;
 }
-
-/** Original synthetic bytes for archive tests without an HTTP implementation */
-export const syntheticFileReader: Pick<BoardReader, 'file'> = {
-  file: (_cardId, attachment) => {
-    const file = syntheticFiles().find((file) => file.name === attachment.name);
-    if (!file) return Promise.reject(new Error('Unknown synthetic file'));
-    return Promise.resolve(file.bytes);
-  },
-};

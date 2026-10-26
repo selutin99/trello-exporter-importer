@@ -11,8 +11,8 @@
 
 # trello-exporter-importer
 
-An open-source Trello Power-Up for exporting active board content in six formats
-and importing saved JSON/ZIP content into the board you have open. Save a portable
+An open-source Trello Power-Up for exporting active board content in five formats
+and importing saved JSON content into the board you have open. Save a portable
 backup, create a readable report, or review and merge saved content into another
 existing board.
 
@@ -33,7 +33,7 @@ existing board.
 
 - Capture active lists, active cards, descriptions, labels, dates, checklists,
   comments, and attachment metadata
-- Bundle available original Trello uploads in a ZIP with SHA-256 integrity checks
+- Preserve attachment names and source links that open files through Trello
 - Restore supported content into the **currently open board**, with a comparison
   before any writes and explicit choices for conflicting values
 - Reuse matching identities and verified mappings from this browser's previous
@@ -49,11 +49,14 @@ synchronization are outside the MVP scope.
 ## Export flow
 
 1. Open **trello-exporter-importer** from the board's Power-Ups
-2. Update board information and choose ZIP, JSON, Markdown, PDF, XLSX, or CSV
-3. For ZIP, select **Connect file access** and review Trello's one-day read-only
-   account grant for original uploads
-4. Select **Export**, then review the file's completeness and any missing content
-5. Download the prepared file; keep JSON or ZIP for a later import
+2. Update board information and choose JSON, Markdown, PDF, XLSX, or CSV
+3. Select **Export**, then review completeness and any missing content
+4. Download the prepared file; keep JSON for a later import
+
+Attachment files stay in Trello. Exports contain their names, metadata, and source
+links. Opening a link requires access to the source file and may require signing
+in to Trello. The exported link uses the original upload filename, even when its
+display name changes. It does not contain credentials or a temporary signed S3 URL.
 
 Each format card has one format marker and a description. Export and import share
 the same footer layout: a centered action, a divider, a full-width local-processing
@@ -69,7 +72,7 @@ flowchart LR
     A[Current Trello board] --> B[Read active content through the API]
     B --> C[Normalize a snapshot and coverage report]
     C --> D{Choose format}
-    D --> E[JSON / ZIP<br/>Portable recovery]
+    D --> E[JSON<br/>Portable recovery]
     D --> F[Markdown / PDF<br/>Read and share]
     D --> G[XLSX / CSV<br/>Analyze and process]
     E --> H[Save on your device]
@@ -81,13 +84,13 @@ flowchart LR
 ```
 
 Capture is best-effort, not a database transaction. Avoid editing the board while
-exporting. Missing sections and file downloads produce explicit warnings; an
+exporting. Missing sections produce explicit warnings; an
 apparently successful download does not establish a complete backup.
 
 ## Import and conflict resolution
 
 Open the destination board first: it can be the original board or another board
-where the Power-Up is enabled. Choose **Import**, select a project JSON/ZIP,
+where the Power-Up is enabled. Choose **Import**, select a project JSON,
 review the destination and merge plan, resolve conflicts, confirm the reviewed
 changes, and select **Import**. Import does not create a board. The footer describes
 local processing and includes technical details about limits, permissions, and
@@ -99,7 +102,7 @@ content that cannot be imported exactly.
 
 ```mermaid
 flowchart TD
-    A[Choose a JSON / ZIP file] --> B[Validate structure, relationships and hashes]
+    A[Choose a JSON file] --> B[Validate structure, relationships and hashes]
     B --> C[Read the board from the live Power-Up context]
     C --> D[Compare snapshot and current content]
     D --> E{Identity or value conflicts?}
@@ -138,17 +141,16 @@ automatically archives current content.
 
 ## Formats
 
-| Format   | Intended use                              | Original attachment bytes | Import |
-| -------- | ----------------------------------------- | ------------------------- | ------ |
-| JSON     | Portable normalized snapshot              | No                        | Yes    |
-| ZIP      | Snapshot, manifest, and available uploads | Yes                       | Yes    |
-| Markdown | One readable UTF-8 document               | No                        | No     |
-| PDF      | A4 report grouped by list and card        | No                        | No     |
-| XLSX     | Related worksheets with typed values      | No                        | No     |
-| CSV      | Flat table, one row per card              | No                        | No     |
+| Format   | Intended use                         | Attachment links | Import |
+| -------- | ------------------------------------ | ---------------- | ------ |
+| JSON     | Portable normalized snapshot         | Yes              | Yes    |
+| Markdown | One readable UTF-8 document          | Yes              | No     |
+| PDF      | Report grouped by list and card      | Yes              | No     |
+| XLSX     | Related worksheets with typed values | Yes              | No     |
+| CSV      | One row per card                     | Yes              | No     |
 
-Trello's native JSON exports, arbitrary ZIP files, and diagnostic reports are not
-accepted as project snapshots. Import accepts only this project's JSON/ZIP files.
+Import accepts this project's JSON snapshots. Native Trello JSON, archives,
+and diagnostic reports do not satisfy the project snapshot contract.
 
 Markdown and PDF include literal board content, checklists, comments, and
 available attachment links. PDF embeds bundled fonts; unsupported characters are
@@ -173,49 +175,28 @@ Sibling `order` values preserve relative order instead of Trello's numeric `pos`
 
 New snapshots retain empty `customFields` and `customFieldValues` arrays with
 `excluded` coverage. These collections remain in the executable schema so older
-JSON/ZIP files can still be validated. Import skips their field definitions,
+JSON files can still be validated. Import skips their field definitions,
 options, and values and reports the omissions; existing board fields are preserved.
 
 New files identify their producer as `trello-exporter-importer`. Import also accepts
 the former `trello-exporter` producer name. The serialized identifiers
-`trello-exporter.snapshot`, `trello-exporter.archive`, and
-`trello-exporter.restore-report` intentionally retain their original values and
+`trello-exporter.snapshot` and `trello-exporter.restore-report` intentionally retain their original values and
 version: the rebrand does not rename the file formats. Exported filenames, interface
 labels, PDF authorship, and repository links use the new name.
 
-ZIP adds an integrity inventory and available original uploads:
+Attachment records retain source links and metadata, with `file: null` and
+`attachmentFiles` coverage fixed to `excluded` with count 0. No attachment files
+are downloaded, embedded, or independently uploaded during import. Import creates
+attachment links and preserves current-only content. Access to linked files
+continues to depend on their source board and on the files remaining available.
 
-```text
-trello-exporter-importer-<date>.zip
-├── manifest.json
-├── snapshot.json
-└── attachments/
-    └── <attachment-id>/
-        └── content
-```
-
-The `trello-exporter.archive` manifest lists `snapshot.json` and every attachment
-with its relative path, uncompressed size, and SHA-256. Duplicate or unsafe paths,
-unlisted or missing entries, hash/size mismatches, unsupported versions, and
-broken relationships fail validation. SHA-256 detects corruption; it is not a
-digital signature.
-
-Standalone JSON has no embedded files or local-file references. ZIP file coverage
-reports which uploads were actually downloaded. Unavailable upload bytes are
-omitted with `FILE_UNAVAILABLE`; review the coverage report before relying on a ZIP
-as a backup. Downloads use the original upload `fileName` when available, preserving
-the download path after its display name changes, including in exported attachment
-links. An interrupted
-download body is also reported as `FILE_UNAVAILABLE`; the remaining ZIP stays
-importable. Cancellation stops packaging instead of returning a completed file.
-External links are retained as safe metadata and are never fetched.
-Import is bounded to 300 MiB total input
-and expanded content, 16 MiB per JSON entry, and 10,000 entries; ZIP expansion is
-also bounded to reject excessive compression ratios. Export allows 250 MiB of
-original upload bytes.
+Input validation rejects embedded-file references, malformed JSON, invalid
+relationships, unsupported versions, and unsafe links. JSON input is limited to
+16 MiB. A SHA-256 checksum binds the local input to its reviewed merge and recovery
+journal; it is not a digital signature. External links are never fetched.
 
 The executable schemas and checks live in [src/import/](src/import/). Synthetic
-captures and file bytes live only in [test/helpers/](test/helpers/).
+captures live in [test/helpers/](test/helpers/).
 
 ## Recovery and limitations
 
@@ -252,8 +233,7 @@ recreated: imported comments become attributed text copies by the importing user
 with long comments split into bounded parts. Member assignments, card covers,
 checklist assignees, activity history, permissions, and unsupported Power-Up data
 are not reconstructed. Links in user text are preserved and can still point to
-the source board. JSON can recreate available source file links; ZIP is required
-for available original bytes to be uploaded independently of the source.
+the source board. JSON import recreates available source attachment links; it does not copy file bytes.
 
 ## Privacy and permissions
 
@@ -264,9 +244,9 @@ private board data; store and share them accordingly.
 
 OAuth read/write grants apply within the authorized Workspace. The grant is
 broader than this app's own current-board checks. Review the actual consent screen
-and use an isolated test Workspace during development. ZIP file access uses a
-separate one-day Trello Auth read grant across the account, while the reader
-remains restricted to the open board. The live SDK context
+and use an isolated test Workspace during development. The app uses OAuth 2.0
+for board reads and reviewed imports, without a Trello Auth API key or an
+account-wide attachment grant. The live SDK context
 selects the import destination; snapshot IDs and downloaded operation reports
 cannot choose another board. Parent ownership and active state are rechecked
 before mutations. API origins are fixed in [src/config/services.ts](src/config/services.ts).
@@ -319,9 +299,9 @@ src/
 ├── core/         Operations, cancellation, and shared workflows
 ├── export/       Markdown, PDF, XLSX, and CSV rendering
 ├── i18n/         English and Russian resources
-├── import/       Snapshot and archive validation
+├── import/       JSON snapshot validation
 ├── restore/      Merge planning, checkpoints, and guarded writes
-├── snapshot/     Capture, normalization, and ZIP packaging
+├── snapshot/     Capture and normalization
 ├── trello/       Official SDK integration and OAuth callbacks
 ├── pages/        HTML entry points
 ├── styles/       CSS and shared themes
@@ -353,11 +333,9 @@ never dispatch field API requests. Format renderers consume the
 normalized snapshot independently of the SDK and restoration workflow.
 
 `snapshot/coverage.ts` finalizes section counts and completeness independently of
-API capture and ZIP packaging. Capture and input validation share named snapshot
+API capture. Capture and input validation share named snapshot
 sections and the same collection inventory. `core/stream.ts` owns cancellable
-byte-stream iteration and reader cleanup for local scans and attachment downloads.
-Transport converts failed download bodies into explicit file omissions during ZIP
-packaging. Cancellation of an OAuth token wait never dispatches a late request;
+byte-stream iteration and reader cleanup for historical local diagnostics. Cancellation of an OAuth token wait never dispatches a late request;
 dispatched writes retain their confirmed or unknown outcome without retries.
 
 ### Commands and checks
@@ -375,7 +353,7 @@ dispatched writes retain their confirmed or unknown outcome without retries.
 | `npm run preview`       | Serve the build at `/trello-exporter-importer/export.html`     |
 
 Coverage gates are 90% for statements, functions, and lines, and 85% for branches.
-Synthetic HTTP/SDK tests cover ownership rejection, file integrity, conflicts,
+Synthetic HTTP/SDK tests cover ownership rejection, JSON validation, conflicts,
 repeat imports, cancellation, partial writes, uncertain outcomes, and recovery.
 Live client acceptance and workload checks are tracked separately in
 [GitHub Issues](https://github.com/selutin99/trello-exporter-importer/issues/4).
@@ -384,17 +362,13 @@ Live client acceptance and workload checks are tracked separately in
 
 1. Host `dist/` over HTTPS and create an isolated test Workspace with an approved
    test board
-2. Register a Power-Up with
-   `connector.html?clientId=<PUBLIC_CLIENT_ID>&appKey=<PUBLIC_TRELLO_API_KEY>` under the
+2. Register a Power-Up with `connector.html?clientId=<PUBLIC_CLIENT_ID>` under the
    deployed base URL; real references belong in runtime settings
-3. Configure the official SDK's OAuth client and register the exact same-origin
+3. Configure the official SDK's OAuth 2.0 client and register the exact same-origin
    `authorize.html?clientId=<PUBLIC_CLIENT_ID>` callback URL
-4. Create the Power-Up's Trello Auth API key for ZIP downloads and allow the deployed
-   origin in its redirect origins. This public key is not the app secret or a user
-   token. Never put a secret or token in the connector URL
-5. Use the hosted `privacy.html` notice and this repository's Issues for support
-6. Enable the Power-Up on the approved board, verify the Workspace and scopes on
-   the consent screen, then test the read flow before authorizing write tests
+4. Use the hosted `privacy.html` notice and this repository's Issues for support
+5. Enable the Power-Up on the approved board, review the Workspace and scopes on
+   the consent screen, then test reading before authorizing import writes
 
 The active board comes from the SDK. The optional legacy `board` query parameter
 remains available for historical diagnostics. Production builds retain
@@ -403,23 +377,11 @@ under `src/`. Do not change callback paths without updating the registration.
 Live tests must stay on explicitly approved boards and must never enumerate
 unrelated boards or touch their content, memberships, settings, or Power-Ups.
 
-ZIP downloads use the official SDK's Trello Auth client with an explicit one-day
-`read` grant. Trello grants this read access across the account; the reader still
-checks the current SDK board and discovered card/upload ownership before each
-file request. Board data and imports keep their OAuth 2.0 flow. The download
-transport sends the classic key/token pair only in the `Authorization` header to
-the fixed Trello attachment origin, omits cookies, and lets Fetch strip authorization on
-cross-origin file redirects. External attachment URLs are never fetched. The
-File requests accept the upload's original media type. File omissions retain only
-fixed API failure codes and HTTP status when available; response bodies, signed
-URLs, and credentials are excluded from diagnostics.
-SDK manages both kinds of tokens, including its file-callback browser storage;
-they never enter exports, journals, or application logs. The standalone return
-page initializes the SDK for its file callback without opening board API access.
-ZIP export waits for file consent; other formats do not require that grant.
-If a stored file grant expires or is revoked, select **Reset file access**, then
-**Connect file access** in a fresh click. Reset clears the SDK connection without
-revoking the grant; account settings provide revocation.
+The SDK manages OAuth 2.0 tokens in Trello private plugin data. Tokens never enter
+exports, journals, or application logs. Requests use fixed API origins and the
+`Authorization` header. Export reads board content; import requests write access
+only when the reviewed changes are explicitly confirmed. No classic Trello Auth
+key, file consent popup, or account-wide file permission is needed.
 
 ### Delivery
 

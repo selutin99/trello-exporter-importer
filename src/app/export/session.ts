@@ -12,7 +12,7 @@ export class ExportSession {
   #model: ExportModel = {
     state: ExportState.Disconnected,
     board: null,
-    format: ExportFormat.Zip,
+    format: ExportFormat.Json,
     progress: null,
     result: null,
   };
@@ -122,7 +122,7 @@ export class ExportSession {
         return;
       }
       const format = this.model.format;
-      const blob = await prepareExport(capture, format, reader, locale, options);
+      const blob = await prepareExport(capture, format, locale, options);
       signal.throwIfAborted();
       const date = new Date().toISOString().replaceAll(':', '-').slice(0, 19);
       this.#model = {

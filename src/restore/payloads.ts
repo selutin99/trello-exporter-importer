@@ -27,22 +27,15 @@ const updateFields = new Map<RestoreResource, readonly string[]>([
  * Rejects properties outside the supported create contract and prevents parent overrides
  * @param resource - Supported child collection
  * @param parent - Verified current-board parent identity
- * @param body - Engine-produced properties or original attachment bytes
+ * @param body - Engine-produced JSON properties
  * @throws ScopeError for unsupported fields, form data, or a different parent
  */
 export function assertCreatePayload(
   resource: RestoreResource,
   parent: string,
-  body: Record<string, unknown> | FormData,
+  body: Record<string, unknown>,
 ): void {
-  if (body instanceof FormData) {
-    if (
-      resource !== RestoreResource.Attachment ||
-      [...body.keys()].some((key) => key !== 'file' && key !== 'name')
-    )
-      throw new ScopeError();
-    return;
-  }
+  if (body instanceof FormData) throw new ScopeError();
   if (
     !Object.keys(body).length ||
     Object.keys(body).some((key) => !createFields.get(resource)?.includes(key)) ||

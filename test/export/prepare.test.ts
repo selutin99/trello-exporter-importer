@@ -2,38 +2,37 @@ import { expect, test, vi } from 'vitest';
 import { prepareExport } from '../../src/export/prepare';
 import { ExportFormat } from '../../src/snapshot/codes';
 import { Locale } from '../../src/i18n';
-import { createSyntheticCapture, syntheticFileReader } from '../helpers/board-capture';
+import { createSyntheticCapture } from '../helpers/board-capture';
 vi.mock('../../src/export/pdf', () => ({
   pdfExport: vi.fn(() =>
     Promise.resolve(new Blob(['%PDF-synthetic'], { type: 'application/pdf' })),
   ),
 }));
 
-test.each([
-  ExportFormat.Json,
-  ExportFormat.Zip,
-  ExportFormat.Markdown,
-  ExportFormat.Csv,
-  ExportFormat.Xlsx,
-  ExportFormat.Pdf,
-])('format %s shares one capture and downloads files only for ZIP', async (format) => {
-  const file = vi.fn(syntheticFileReader.file);
-  const blob = await prepareExport(createSyntheticCapture(), format, { file }, Locale.English);
-  expect(blob.size).toBeGreaterThan(0);
-  expect(file).toHaveBeenCalledTimes(format === ExportFormat.Zip ? 3 : 0);
-});
-test('cancelled format preparation cannot return file bytes', async () => {
+test.each(Object.values(ExportFormat))(
+  'format %s uses the snapshot without fetching attachment bytes',
+  async (format) => {
+    const fetcher = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetcher);
+    try {
+      const capture = createSyntheticCapture();
+      const before = structuredClone(capture.snapshot);
+      const blob = await prepareExport(capture, format, Locale.English);
+      expect(blob.size).toBeGreaterThan(0);
+      expect(capture.snapshot).toEqual(before);
+      expect(fetcher).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  },
+);
+
+test('cancelled preparation cannot return an export', async () => {
   const active = new AbortController();
   active.abort();
   await expect(
-    prepareExport(
-      createSyntheticCapture(),
-      ExportFormat.Json,
-      syntheticFileReader,
-      Locale.English,
-      {
-        signal: active.signal,
-      },
-    ),
-  ).rejects.toMatchObject({ name: 'AbortError' });
+    prepareExport(createSyntheticCapture(), ExportFormat.Json, Locale.English, {
+      signal: active.signal,
+    }),
+  ).rejects.toBe(active.signal.reason);
 });

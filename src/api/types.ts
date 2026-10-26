@@ -40,10 +40,6 @@ export interface RequestOptions {
 export interface ClientOptions {
   boardReference: string;
   getAccessToken: () => Promise<string | null | undefined>;
-  attachmentAuth?: {
-    appKey: string;
-    getToken: () => Promise<string | null | undefined>;
-  };
   fetchImpl?: typeof fetch;
   pauseImpl?: (ms: number, signal?: AbortSignal) => Promise<void>;
   writesEnabled?: boolean;

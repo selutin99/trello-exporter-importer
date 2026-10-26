@@ -92,13 +92,7 @@ export function validateReferences(snapshot: Snapshot): void {
     ),
   );
   requireValid(snapshot.comments.every((comment) => cards.has(comment.cardId)));
-  requireValid(
-    snapshot.attachments.every(
-      (attachment) =>
-        cards.has(attachment.cardId) &&
-        (!attachment.file || attachment.file.path === `attachments/${attachment.id}/content`),
-    ),
-  );
+  requireValid(snapshot.attachments.every((attachment) => cards.has(attachment.cardId)));
   customValues(snapshot, cards);
   for (const section of snapshotCollections) {
     const records = snapshot[section];
@@ -110,8 +104,5 @@ export function validateReferences(snapshot: Snapshot): void {
     );
   }
   requireValid(snapshot.coverage[SnapshotSection.Board]?.count === 1);
-  requireValid(
-    snapshot.coverage[SnapshotSection.AttachmentFiles]?.count ===
-      snapshot.attachments.filter((attachment) => attachment.file).length,
-  );
+  requireValid(snapshot.coverage[SnapshotSection.AttachmentFiles]?.count === 0);
 }

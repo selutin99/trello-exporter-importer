@@ -15,6 +15,5 @@ export const formatsEn = {
   formatLabels: 'Labels',
   formatMembers: 'Members',
   formatNoLink: 'No available source link',
-  formatNotice:
-    'Active content only · attachment file bytes are available in ZIP · restore uses JSON/ZIP',
+  formatNotice: 'Active content and attachment links · import uses JSON',
 } as const;

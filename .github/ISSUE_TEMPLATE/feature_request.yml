@@ -37,7 +37,7 @@ body:
         - Authentication and permissions
         - Snapshot export
         - Restore
-        - Local files and archives
+        - Local JSON files
         - Localization and resources
         - Build and CI
         - Documentation

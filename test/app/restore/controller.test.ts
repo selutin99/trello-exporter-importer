@@ -4,7 +4,7 @@ import { RestoreUI } from '../../../src/app/restore/controller';
 import { Locale, localizePage } from '../../../src/i18n';
 import { RestoreStatus } from '../../../src/restore/codes';
 import { createSyntheticCapture } from '../../helpers/board-capture';
-import { jsonBytes } from '../../../src/snapshot/archive';
+import { jsonBytes } from '../../../src/snapshot/encoding';
 import { loadPage, installSdk, button } from '../../helpers/browser';
 import { restorationFixture, restoreJournal } from '../../helpers/restore';
 import { id, sourceBoard } from '../../helpers/snapshot';

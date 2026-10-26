@@ -5,8 +5,8 @@ import type { MergeRecord } from './types';
 import { canonical } from './values';
 
 /**
- * Compares attachment metadata, including a previously imported file represented by an available source link
- * @param imported - Validated input and available ZIP bytes
+ * Compares attachment metadata, including a previously imported source link
+ * @param imported - Validated JSON input
  * @param record - Incoming attachment projection
  * @param current - Current metadata
  * @param rememberedId - Verified mapping from this browser's prior merge
@@ -33,11 +33,9 @@ export function attachmentMatches(
     return false;
   let expected = { ...incoming };
   const actual = { ...existing };
-  const availableFile = source.file && imported.files.has(source.file.path);
   if (
     rememberedId === current.sourceId &&
     source.kind === AttachmentKind.Upload &&
-    !availableFile &&
     source.url &&
     existing.kind === AttachmentKind.Link
   )

@@ -32,7 +32,19 @@ test('create and update contracts reject access changes, parent overrides, and u
     expect(() => assertUpdatePayload(RestoreResource.Board, body)).toThrow(ScopeError);
   const form = new FormData();
   form.set('name', 'Synthetic.txt');
-  expect(() => assertCreatePayload(RestoreResource.Attachment, 'card', form)).not.toThrow();
+  expect(() =>
+    assertCreatePayload(
+      RestoreResource.Attachment,
+      'card',
+      form as unknown as Record<string, unknown>,
+    ),
+  ).toThrow(ScopeError);
   form.set('idBoard', 'other');
-  expect(() => assertCreatePayload(RestoreResource.Attachment, 'card', form)).toThrow(ScopeError);
+  expect(() =>
+    assertCreatePayload(
+      RestoreResource.Attachment,
+      'card',
+      form as unknown as Record<string, unknown>,
+    ),
+  ).toThrow(ScopeError);
 });
