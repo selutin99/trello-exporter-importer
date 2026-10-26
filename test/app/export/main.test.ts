@@ -34,6 +34,49 @@ test('standalone links cannot activate sample content or initialize the SDK', as
   expect(sdk.iframe).not.toHaveBeenCalled();
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+test('a file-consent popup initializes only the SDK callback without reading board data', async () => {
+  const { sdk } = installSdk();
+  const fetcher = vi.fn<typeof fetch>();
+  vi.stubGlobal('fetch', fetcher);
+  vi.stubGlobal('opener', {});
+  window.history.replaceState(null, '', `${window.location.href}#token=synthetic-callback-token`);
+  await start();
+  expect(sdk.iframe).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      appKey: '00000000000000000000000000000000',
+      appName: 'trello-exporter-importer',
+    }),
+  );
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(document.body.textContent).not.toContain('synthetic-callback-token');
+  expect(localStorage.getItem('trello_token')).toBeNull();
+});
+
+test.each(['missing-key', 'missing-sdk', 'sdk-error', 'ordinary-link'])(
+  'file callback fails closed without exposing its fragment: %s',
+  async (condition) => {
+    if (condition === 'missing-key') loadPage('export', 'clientId=public-client');
+    const { sdk } = installSdk();
+    vi.stubGlobal('opener', {});
+    if (condition !== 'ordinary-link')
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.href}#token=synthetic-callback-token`,
+      );
+    if (condition === 'missing-sdk') vi.stubGlobal('TrelloPowerUp', undefined);
+    if (condition === 'sdk-error')
+      sdk.iframe.mockImplementation(() => {
+        throw new Error('private-sdk-detail');
+      });
+    await start();
+    expect(button('export').disabled).toBe(true);
+    expect(document.body.textContent).not.toContain('synthetic-callback-token');
+    expect(document.body.textContent).not.toContain('private-sdk-detail');
+    if (condition !== 'sdk-error') expect(sdk.iframe).not.toHaveBeenCalled();
+  },
+);
 const change = (selector: string, value: string) => {
   const input = document.querySelector<HTMLInputElement | HTMLSelectElement>(selector)!;
   input.value = value;

@@ -5,7 +5,11 @@ import { runtimeSettings } from '../../trello/runtime';
 import { pageReady } from '../../trello/sdk';
 import type { PowerUpFrame } from '../../trello/sdk';
 import { OAuthScope } from '../../trello/scopes';
-import { AttachmentAccess, AttachmentAccessState } from '../../trello/attachments';
+import {
+  AttachmentAccess,
+  AttachmentAccessState,
+  completeAttachmentCallback,
+} from '../../trello/attachments';
 import { ExportFormat } from '../../snapshot/codes';
 import { downloadBlob, downloadJson } from '../download';
 import { ExportSession } from './session';
@@ -115,6 +119,7 @@ restore = new RestoreUI({
 });
 render();
 await pageReady(window);
+completeAttachmentCallback(window);
 if (window.TrelloPowerUp && window.parent !== window) {
   try {
     const settings = runtimeSettings(window.location.href);

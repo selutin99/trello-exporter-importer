@@ -410,7 +410,9 @@ file request. Board data and imports keep their OAuth 2.0 flow. The download
 transport sends the classic key/token pair only in the `Authorization` header to
 the fixed Trello API origin, omits cookies, and lets Fetch strip authorization on
 cross-origin file redirects. External attachment URLs are never fetched. The
-SDK stores both kinds of tokens; they never enter exports, journals, or logs.
+SDK manages both kinds of tokens, including its file-callback browser storage;
+they never enter exports, journals, or application logs. The standalone return
+page initializes the SDK for its file callback without opening board API access.
 ZIP export waits for file consent; other formats do not require that grant.
 
 ### Delivery

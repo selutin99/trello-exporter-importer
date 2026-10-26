@@ -1,4 +1,5 @@
 import type { AttachmentClient } from './sdk';
+import { runtimeSettings } from './runtime';
 
 export enum AttachmentAccessState {
   Unavailable = 'exportFilesUnconfigured',
@@ -12,6 +13,29 @@ export enum AttachmentScope {
 }
 export enum AttachmentExpiration {
   OneDay = '1day',
+}
+
+/**
+ * Lets the official SDK finish its file-consent popup before standalone rendering
+ * @param window - Callback window; embedded frames and ordinary links are ignored
+ * @returns Whether a configured SDK callback was initialized without exposing its fragment
+ */
+export function completeAttachmentCallback(window: Window): boolean {
+  try {
+    if (
+      window.parent !== window ||
+      !window.opener ||
+      !window.location.hash.startsWith('#token=') ||
+      !window.TrelloPowerUp
+    )
+      return false;
+    const settings = runtimeSettings(window.location.href);
+    if (!settings.appKey) return false;
+    window.TrelloPowerUp.iframe(settings.oauthOptions);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Owns read-only file authorization through Trello's official REST API client */
