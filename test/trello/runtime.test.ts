@@ -31,17 +31,17 @@ test('invalid public client IDs fail closed', () => {
 
 test('file SDK configuration propagates only the public key and keeps the OAuth callback exact', () => {
   const href =
-    'https://example.com/connector.html?clientId=public-client&appKey=0123456789abcdef0123456789abcdef&token=private#secret';
+    'https://example.com/connector.html?clientId=public-client&appKey=00000000000000000000000000000000&token=private#secret';
   const settings = runtimeSettings(href);
   assert.deepEqual(settings.oauthOptions, {
     clientId: 'public-client',
     redirectUri: 'https://example.com/authorize.html?clientId=public-client',
-    appKey: '0123456789abcdef0123456789abcdef',
+    appKey: '00000000000000000000000000000000',
     appName: 'trello-exporter-importer',
   });
   assert.equal(
     probeUrl(href, settings),
-    'https://example.com/export.html?clientId=public-client&appKey=0123456789abcdef0123456789abcdef',
+    'https://example.com/export.html?clientId=public-client&appKey=00000000000000000000000000000000',
   );
   assert.throws(() => runtimeSettings('https://example.com/connector.html?appKey=bad%22key'));
 });

@@ -8,7 +8,7 @@ vi.mock('../../../src/app/download', () => downloads);
 
 beforeEach(() => {
   vi.resetModules();
-  loadPage('export', 'clientId=public-client&appKey=0123456789abcdef0123456789abcdef');
+  loadPage('export', 'clientId=public-client&appKey=00000000000000000000000000000000');
 });
 afterEach(() => {
   window.dispatchEvent(new Event('pagehide'));
