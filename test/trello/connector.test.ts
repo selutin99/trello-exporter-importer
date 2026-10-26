@@ -56,3 +56,17 @@ test('a missing SDK leaves a readable connector status', async () => {
     /unavailable|недоступен/,
   );
 });
+
+test('the hidden connector initializes only OAuth 2.0 while forwarding public file configuration to its modal', async () => {
+  loadPage('connector', 'clientId=public-client&appKey=00000000000000000000000000000000');
+  const { sdk, frame, attachmentClient } = installSdk();
+  await import('../../src/trello/connector');
+  expect(sdk.initialize.mock.calls[0]?.[1]).toEqual({
+    clientId: 'public-client',
+    redirectUri:
+      'http://localhost:3000/trello-exporter-importer/authorize.html?clientId=public-client',
+  });
+  await sdk.initialize.mock.calls[0]?.[0]['board-buttons'](frame)[0]?.callback(frame);
+  expect(frame.modal.mock.calls[0]?.[0].url).toContain('appKey=00000000000000000000000000000000');
+  expect(attachmentClient.getToken).not.toHaveBeenCalled();
+});

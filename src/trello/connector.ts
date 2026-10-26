@@ -40,7 +40,7 @@ try {
         }
       },
     },
-    settings.oauthOptions,
+    { clientId: settings.clientId, redirectUri: settings.redirectUri },
   );
   if (status) status.textContent = translations[chooseLocale(navigator.language)].connectorReady;
 } catch {
