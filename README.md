@@ -50,8 +50,10 @@ synchronization are outside the MVP scope.
 
 1. Open **trello-exporter-importer** from the board's Power-Ups
 2. Update board information and choose ZIP, JSON, Markdown, PDF, XLSX, or CSV
-3. Select **Export**, then review the file's completeness and any missing content
-4. Download the prepared file; keep JSON or ZIP for a later import
+3. For ZIP, select **Connect file access** and review Trello's one-day read-only
+   account grant for original uploads
+4. Select **Export**, then review the file's completeness and any missing content
+5. Download the prepared file; keep JSON or ZIP for a later import
 
 Each format card has one format marker and a description. Export and import share
 the same footer layout: a centered action, a divider, a full-width local-processing
@@ -262,7 +264,9 @@ private board data; store and share them accordingly.
 
 OAuth read/write grants apply within the authorized Workspace. The grant is
 broader than this app's own current-board checks. Review the actual consent screen
-and use an isolated test Workspace during development. The live SDK context
+and use an isolated test Workspace during development. ZIP file access uses a
+separate one-day Trello Auth read grant across the account, while the reader
+remains restricted to the open board. The live SDK context
 selects the import destination; snapshot IDs and downloaded operation reports
 cannot choose another board. Parent ownership and active state are rechecked
 before mutations. API origins are fixed in [src/config/services.ts](src/config/services.ts).
@@ -380,12 +384,16 @@ Live client acceptance and workload checks are tracked separately in
 
 1. Host `dist/` over HTTPS and create an isolated test Workspace with an approved
    test board
-2. Register a Power-Up with `connector.html?clientId=<PUBLIC_CLIENT_ID>` under the
+2. Register a Power-Up with
+   `connector.html?clientId=<PUBLIC_CLIENT_ID>&appKey=<PUBLIC_TRELLO_API_KEY>` under the
    deployed base URL; real references belong in runtime settings
 3. Configure the official SDK's OAuth client and register the exact same-origin
    `authorize.html?clientId=<PUBLIC_CLIENT_ID>` callback URL
-4. Use the hosted `privacy.html` notice and this repository's Issues for support
-5. Enable the Power-Up on the approved board, verify the Workspace and scopes on
+4. Create the Power-Up's Trello Auth API key for ZIP downloads and allow the deployed
+   origin in its redirect origins. This public key is not the app secret or a user
+   token. Never put a secret or token in the connector URL
+5. Use the hosted `privacy.html` notice and this repository's Issues for support
+6. Enable the Power-Up on the approved board, verify the Workspace and scopes on
    the consent screen, then test the read flow before authorizing write tests
 
 The active board comes from the SDK. The optional legacy `board` query parameter
@@ -394,6 +402,16 @@ remains available for historical diagnostics. Production builds retain
 under `src/`. Do not change callback paths without updating the registration.
 Live tests must stay on explicitly approved boards and must never enumerate
 unrelated boards or touch their content, memberships, settings, or Power-Ups.
+
+ZIP downloads use the official SDK's Trello Auth client with an explicit one-day
+`read` grant. Trello grants this read access across the account; the reader still
+checks the current SDK board and discovered card/upload ownership before each
+file request. Board data and imports keep their OAuth 2.0 flow. The download
+transport sends the classic key/token pair only in the `Authorization` header to
+the fixed Trello API origin, omits cookies, and lets Fetch strip authorization on
+cross-origin file redirects. External attachment URLs are never fetched. The
+SDK stores both kinds of tokens; they never enter exports, journals, or logs.
+ZIP export waits for file consent; other formats do not require that grant.
 
 ### Delivery
 

@@ -94,11 +94,14 @@ export class Transport {
     throw new ApiError(ApiErrorCode.RequestFailed);
   }
 
-  async #token(signal?: AbortSignal): Promise<string> {
+  async #token(binary: boolean, signal?: AbortSignal): Promise<string> {
     signal?.throwIfAborted();
     let token: string | null | undefined;
     try {
-      const pending = this.options.getAccessToken();
+      const pending =
+        binary && this.options.attachmentAuth
+          ? this.options.attachmentAuth.getToken()
+          : this.options.getAccessToken();
       token = signal ? await waitForOperation(pending, signal) : await pending;
     } catch {
       signal?.throwIfAborted();
@@ -114,7 +117,11 @@ export class Transport {
     url: URL,
     { body, signal, binary }: TransportOptions,
   ): Promise<Response> {
-    const token = await this.#token(signal);
+    const token = await this.#token(!!binary, signal);
+    const fileAuth = binary ? this.options.attachmentAuth : undefined;
+    const authorization = fileAuth
+      ? `OAuth oauth_consumer_key="${encodeURIComponent(fileAuth.appKey)}", oauth_token="${encodeURIComponent(token)}"`
+      : `Bearer ${token}`;
     const form = body instanceof FormData;
     signal?.throwIfAborted();
     try {
@@ -128,7 +135,7 @@ export class Transport {
         cache: 'no-store',
         headers: {
           Accept: binary ? 'application/octet-stream' : 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: authorization,
           ...(body && !form ? { 'Content-Type': 'application/json' } : {}),
         },
         ...(body ? { body: form ? body : JSON.stringify(body) } : {}),

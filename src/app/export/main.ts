@@ -5,6 +5,7 @@ import { runtimeSettings } from '../../trello/runtime';
 import { pageReady } from '../../trello/sdk';
 import type { PowerUpFrame } from '../../trello/sdk';
 import { OAuthScope } from '../../trello/scopes';
+import { AttachmentAccess, AttachmentAccessState } from '../../trello/attachments';
 import { ExportFormat } from '../../snapshot/codes';
 import { downloadBlob, downloadJson } from '../download';
 import { ExportSession } from './session';
@@ -24,9 +25,16 @@ let frame: PowerUpFrame | null = null;
 let reader: BoardReader | null = null;
 let restore: RestoreUI | null = null;
 const session = new ExportSession(render);
+let files = new AttachmentAccess(null, render);
 window.addEventListener('pagehide', () => session.cancel(), { once: true });
 function render(): void {
-  view.render(locale, session.model, !!frame, session.busy || !!restore?.busy);
+  view.render(
+    locale,
+    session.model,
+    !!frame,
+    session.busy || !!restore?.busy || files.state === AttachmentAccessState.Authorizing,
+    files.state,
+  );
   restore?.render();
 }
 
@@ -48,7 +56,12 @@ for (const input of document.querySelectorAll<HTMLInputElement>('input[name="for
   });
 }
 view.element('export', HTMLButtonElement).addEventListener('click', () => {
+  if (session.model.format === ExportFormat.Zip && files.state !== AttachmentAccessState.Ready)
+    return;
   void session.prepare(reader, frame?.getContext().board ?? '', locale);
+});
+view.element('file-connect', HTMLButtonElement).addEventListener('click', () => {
+  void files.authorize();
 });
 view.element('cancel', HTMLButtonElement).addEventListener('click', () => session.cancel());
 view.element('save', HTMLButtonElement).addEventListener('click', () => {
@@ -110,9 +123,14 @@ if (window.TrelloPowerUp && window.parent !== window) {
     const boardId = activeFrame.getContext().board;
     if (!isId(boardId)) throw new Error('Missing current board context');
     frame = activeFrame;
+    const fileClient = settings.appKey ? (activeFrame.getRestApi?.() ?? null) : null;
+    files = new AttachmentAccess(fileClient, render);
     reader = new BoardReader({
       boardReference: boardId,
       getAccessToken: () => activeFrame.getOAuth2ApiClient().getAccessToken(),
+      ...(fileClient
+        ? { attachmentAuth: { appKey: settings.appKey, getToken: () => fileClient.getToken() } }
+        : {}),
     });
     let initialized = false;
     activeFrame.render(() => {
@@ -120,6 +138,7 @@ if (window.TrelloPowerUp && window.parent !== window) {
       render();
       if (!initialized) {
         initialized = true;
+        void files.refresh();
         void loadBoard();
       }
     });

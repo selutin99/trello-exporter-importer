@@ -8,7 +8,7 @@ vi.mock('../../../src/app/download', () => downloads);
 
 beforeEach(() => {
   vi.resetModules();
-  loadPage('export');
+  loadPage('export', 'clientId=public-client&appKey=0123456789abcdef0123456789abcdef');
 });
 afterEach(() => {
   window.dispatchEvent(new Event('pagehide'));
@@ -169,4 +169,39 @@ test('an unavailable SDK frame does not expose API controls', async () => {
   });
   await start();
   expect(button('connect').disabled).toBe(true);
+});
+
+test('ZIP waits for explicit file consent, while JSON remains usable after denial', async () => {
+  const { attachmentClient, fetcher } = live();
+  attachmentClient.getToken.mockResolvedValue(null);
+  await start();
+  await vi.waitFor(() =>
+    expect(document.getElementById('board-name')?.textContent).toBe(sourceBoard.name),
+  );
+  expect(button('export').disabled).toBe(true);
+  expect(attachmentClient.authorize).not.toHaveBeenCalled();
+  attachmentClient.authorize.mockRejectedValueOnce(new Error('private-file-consent'));
+  button('file-connect').click();
+  await vi.waitFor(() =>
+    expect(document.getElementById('file-access-status')?.textContent).toContain('не подключен'),
+  );
+  expect(document.body.textContent).not.toContain('private-file-consent');
+  change('input[value="json"]', 'json');
+  expect(button('export').disabled).toBe(false);
+  expect(document.getElementById('file-access')?.hidden).toBe(true);
+  change('input[value="zip"]', 'zip');
+  attachmentClient.getToken.mockResolvedValue('synthetic-file-token');
+  button('file-connect').click();
+  await vi.waitFor(() => expect(button('export').disabled).toBe(false));
+  button('export').click();
+  await vi.waitFor(() => expect(document.getElementById('result')?.hidden).toBe(false));
+  const files = fetcher.mock.calls.filter(([url]) =>
+    (url instanceof Request ? url.url : url.toString()).includes('/download/'),
+  );
+  expect(files.length).toBeGreaterThan(0);
+  expect(
+    files.every(([, init]) =>
+      String(new Headers(init?.headers).get('Authorization')).startsWith('OAuth '),
+    ),
+  ).toBe(true);
 });

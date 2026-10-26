@@ -62,4 +62,14 @@ export const exportRu = {
   exportBoardChanged: 'Доска изменилась во время экспорта',
   exportDetails: 'Технические сведения',
   exportSupport: 'Помощь и обратная связь',
+  exportFilesConnect: 'Подключить доступ к файлам',
+  exportFilesReconnect: 'Обновить доступ к файлам',
+  exportFilesUnconfigured:
+    'Доступ к файлам для этого улучшения не настроен. Выберите другой формат или обратитесь к его автору',
+  exportFilesRequired:
+    'Для оригиналов вложений в ZIP подключите доступ к файлам. Trello дает доступ на чтение ко всему аккаунту на один день; улучшение скачивает файлы только с открытой доски',
+  exportFilesAuthorizing: 'Завершите подключение файлов в окне Trello',
+  exportFilesConnected: 'Доступ к файлам подключен',
+  exportFilesAuthFailed:
+    'Доступ к файлам не подключен. Повторите попытку или выберите другой формат',
 } satisfies { [Key in keyof typeof exportEn]: string };

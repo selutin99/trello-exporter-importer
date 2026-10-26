@@ -2,6 +2,12 @@
 export interface OAuthOptions {
   clientId?: string;
   redirectUri?: string;
+  appKey?: string;
+  appName?: string;
+}
+export interface AttachmentClient {
+  getToken(): Promise<string | null | undefined>;
+  authorize(options: { scope: string; expiration: string }): Promise<unknown>;
 }
 export interface OAuthClient {
   getAccessToken(): Promise<string | null | undefined>;
@@ -11,6 +17,7 @@ export interface OAuthClient {
 export interface PowerUpFrame {
   getContext(): { board?: string; locale?: string };
   getOAuth2ApiClient(): OAuthClient;
+  getRestApi?(): AttachmentClient;
   render(callback: () => void): void;
   modal(options: {
     title: string;

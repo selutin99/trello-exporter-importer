@@ -4,6 +4,7 @@ export const serviceUrls = Object.freeze({
   trelloBoardOrigin: 'https://trello.com',
   powerUpSdk: 'https://p.trellocdn.com/power-up.min.js',
   connectedApps: 'https://id.atlassian.com/manage-profile/apps',
+  trelloAccount: 'https://trello.com/my/account',
   supportIssues: 'https://github.com/selutin99/trello-exporter-importer/issues',
 });
 
@@ -11,5 +12,6 @@ export const serviceUrls = Object.freeze({
 export const htmlServiceUrls = Object.freeze({
   '%POWER_UP_SDK_URL%': serviceUrls.powerUpSdk,
   '%CONNECTED_APPS_URL%': serviceUrls.connectedApps,
+  '%TRELLO_ACCOUNT_URL%': serviceUrls.trelloAccount,
   '%SUPPORT_ISSUES_URL%': serviceUrls.supportIssues,
 });

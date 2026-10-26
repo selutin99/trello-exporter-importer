@@ -8,6 +8,89 @@ import { deferred } from '../helpers/deferred';
 const board = { id: 'a'.repeat(24), shortLink: 'TEST0001', name: 'Synthetic', closed: false };
 const ok = (value: unknown) => new Response(JSON.stringify(value));
 
+test('file grants use classic headers only for binary requests while JSON keeps OAuth 2.0', async () => {
+  const fetchImpl = vi
+    .fn<typeof fetch>()
+    .mockImplementation(async (input) =>
+      (input instanceof Request ? input.url : input.toString()).includes('/download/')
+        ? new Response('file')
+        : ok(board),
+    );
+  const transport = new Transport({
+    boardReference: board.shortLink,
+    getAccessToken: async () => 'synthetic-access',
+    attachmentAuth: { appKey: 'public-key', getToken: async () => 'synthetic-file-token' },
+    fetchImpl,
+  });
+  expect(
+    await transport.download('/cards/scoped/attachments/scoped/download/original.txt', 4),
+  ).toEqual(new TextEncoder().encode('file'));
+  await transport.request(HttpMethod.Get, '/boards/scoped');
+  const [download, metadata] = fetchImpl.mock.calls;
+  expect(download?.[0]).toBe(
+    'https://api.trello.com/1/cards/scoped/attachments/scoped/download/original.txt',
+  );
+  expect(download?.[1]).toMatchObject({
+    credentials: 'omit',
+    redirect: 'follow',
+    headers: {
+      Authorization: 'OAuth oauth_consumer_key="public-key", oauth_token="synthetic-file-token"',
+    },
+  });
+  expect(metadata?.[1]).toMatchObject({
+    headers: { Authorization: 'Bearer synthetic-access' },
+    redirect: 'error',
+  });
+  expect(download?.[0]).not.toContain('token');
+});
+
+test('missing file consent never falls back to a board bearer token', async () => {
+  const fetchImpl = vi.fn<typeof fetch>();
+  const getAccessToken = vi.fn(async () => 'synthetic-access');
+  const transport = new Transport({
+    boardReference: board.shortLink,
+    getAccessToken,
+    fetchImpl,
+    attachmentAuth: { appKey: 'public-key', getToken: async () => null },
+  });
+  await expect(transport.download('/scoped-download', 10)).rejects.toMatchObject({
+    code: ApiErrorCode.AuthRequired,
+  });
+  expect(fetchImpl).not.toHaveBeenCalled();
+  expect(getAccessToken).not.toHaveBeenCalled();
+});
+
+test('cancelling file-token acquisition prevents late dispatch and hides SDK details', async () => {
+  const active = new AbortController();
+  const token = deferred<string>();
+  const fetchImpl = vi.fn<typeof fetch>();
+  const transport = new Transport({
+    boardReference: board.shortLink,
+    fetchImpl,
+    getAccessToken: async () => 'synthetic',
+    attachmentAuth: { appKey: 'public-key', getToken: () => token.promise },
+  });
+  const request = transport.download('/scoped-download', 10, { signal: active.signal });
+  active.abort();
+  await expect(request).rejects.toBe(active.signal.reason);
+  token.resolve('synthetic-private');
+  expect(fetchImpl).not.toHaveBeenCalled();
+  const failed = new Transport({
+    boardReference: board.shortLink,
+    fetchImpl,
+    getAccessToken: async () => 'synthetic',
+    attachmentAuth: {
+      appKey: 'public-key',
+      getToken: async () => {
+        throw new Error('private-file-token');
+      },
+    },
+  });
+  await expect(failed.download('/scoped-download', 10)).rejects.toEqual(
+    new ApiError(ApiErrorCode.AuthRequired),
+  );
+});
+
 test.each(Object.values(HttpMethod))(
   'cancelling a pending token wait releases %s without dispatching a late request',
   async (method) => {

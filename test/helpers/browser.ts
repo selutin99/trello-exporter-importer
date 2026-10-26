@@ -25,6 +25,10 @@ export function loadPage(
 }
 
 export function installSdk() {
+  const attachmentClient = {
+    getToken: vi.fn().mockResolvedValue('synthetic-file-token'),
+    authorize: vi.fn().mockResolvedValue(undefined),
+  };
   const client = {
     getAccessToken: vi.fn<OAuthClient['getAccessToken']>().mockResolvedValue('synthetic-token'),
     authorize: vi.fn<OAuthClient['authorize']>().mockResolvedValue(undefined),
@@ -35,6 +39,7 @@ export function installSdk() {
       .fn<PowerUpFrame['getContext']>()
       .mockReturnValue({ board: board.id, locale: 'ru' }),
     getOAuth2ApiClient: vi.fn<PowerUpFrame['getOAuth2ApiClient']>().mockReturnValue(client),
+    getRestApi: vi.fn().mockReturnValue(attachmentClient),
     render: vi.fn<PowerUpFrame['render']>().mockImplementation((callback) => callback()),
     modal: vi.fn<PowerUpFrame['modal']>().mockResolvedValue(undefined),
   };
@@ -43,7 +48,7 @@ export function installSdk() {
     initialize: vi.fn<PowerUpSdk['initialize']>(),
   };
   vi.stubGlobal('TrelloPowerUp', sdk);
-  return { client, frame, sdk };
+  return { client, frame, sdk, attachmentClient };
 }
 
 export function button(id: string): HTMLButtonElement {
